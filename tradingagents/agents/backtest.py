@@ -165,9 +165,6 @@ def run_backtest(symbol: str = None, target_date: str = None, db_path: str = DB_
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # 构建过滤条件
-    symbol_filter = f"AND symbol = '{symbol}'" if symbol else ""
-    
     # 确保表结构正确
     try:
         cursor.execute("ALTER TABLE research_records ADD COLUMN buy_price REAL")
@@ -178,30 +175,55 @@ def run_backtest(symbol: str = None, target_date: str = None, db_path: str = DB_
     except:
         pass
     
-    # 回测前输出记录（只显示未回测的）
+    # 回测前输出记录（只显示未回测的）- 使用参数化查询
     print(f"\n=== 回测前 {symbol or '全部'} {target_date} 的待回测记录 ===")
-    cursor.execute(f"""
-        SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, 
-               reasoning, outcome, verified_date, actual_return, holding_days, created_at, 
-               metadata, buy_price, initial_capital, shares, total_return, backtest_date, backtest_price
-        FROM research_records 
-        WHERE trade_date <= '{target_date}' 
-        AND prediction IN ('BUY', 'SELL', 'HOLD') {symbol_filter}
-        ORDER BY symbol, trade_date, researcher_name
-    """)
+    
+    if symbol:
+        cursor.execute("""
+            SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, 
+                   reasoning, outcome, verified_date, actual_return, holding_days, created_at, 
+                   metadata, buy_price, initial_capital, shares, total_return, backtest_date, backtest_price
+            FROM research_records 
+            WHERE trade_date <= ? 
+            AND prediction IN ('BUY', 'SELL', 'HOLD')
+            AND symbol = ?
+            ORDER BY symbol, trade_date, researcher_name
+        """, (target_date, symbol))
+    else:
+        cursor.execute("""
+            SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, 
+                   reasoning, outcome, verified_date, actual_return, holding_days, created_at, 
+                   metadata, buy_price, initial_capital, shares, total_return, backtest_date, backtest_price
+            FROM research_records 
+            WHERE trade_date <= ? 
+            AND prediction IN ('BUY', 'SELL', 'HOLD')
+            ORDER BY symbol, trade_date, researcher_name
+        """, (target_date,))
+    
     all_records = cursor.fetchall()
     for r in all_records:
         print(f"ID:{r[0]} | {r[3]} | {r[4]} | {r[1]} | {r[5]} | conf:{r[6]} | outcome:{r[8]} | buy_price:{r[14]} | shares:{r[16]} | total_return:{r[17]} | backtest_date:{r[18]} | backtest_price:{r[19]}")
     print("-" * 130)
     
-    # 找出目标日期的前一个有记录的 trade_date（且未回测过的）
-    cursor.execute(f"""
-        SELECT DISTINCT trade_date FROM research_records 
-        WHERE trade_date < '{target_date}' 
-        AND prediction IN ('BUY', 'SELL', 'HOLD') {symbol_filter}
-        ORDER BY trade_date DESC
-        LIMIT 1
-    """)
+    # 找出目标日期的前一个有记录的 trade_date（且未回测过的）- 使用参数化查询
+    if symbol:
+        cursor.execute("""
+            SELECT DISTINCT trade_date FROM research_records 
+            WHERE trade_date < ? 
+            AND prediction IN ('BUY', 'SELL', 'HOLD')
+            AND symbol = ?
+            ORDER BY trade_date DESC
+            LIMIT 1
+        """, (target_date, symbol))
+    else:
+        cursor.execute("""
+            SELECT DISTINCT trade_date FROM research_records 
+            WHERE trade_date < ? 
+            AND prediction IN ('BUY', 'SELL', 'HOLD')
+            ORDER BY trade_date DESC
+            LIMIT 1
+        """, (target_date,))
+    
     last_date_row = cursor.fetchone()
     if not last_date_row:
         print("没有可回测的历史记录")
@@ -211,13 +233,22 @@ def run_backtest(symbol: str = None, target_date: str = None, db_path: str = DB_
     print(f"回测日期: {last_date}")
     print("-" * 130)
 
-    # 只获取前一个日期的记录
-    cursor.execute(f"""
-        SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, holding_days, buy_price, initial_capital, shares, metadata
-        FROM research_records
-        WHERE trade_date = '{last_date}' AND prediction IN ('BUY', 'SELL', 'HOLD') {symbol_filter}
-        ORDER BY researcher_name
-    """)
+    # 只获取前一个日期的记录 - 使用参数化查询
+    if symbol:
+        cursor.execute("""
+            SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, holding_days, buy_price, initial_capital, shares, metadata
+            FROM research_records
+            WHERE trade_date = ? AND prediction IN ('BUY', 'SELL', 'HOLD') AND symbol = ?
+            ORDER BY researcher_name
+        """, (last_date, symbol))
+    else:
+        cursor.execute("""
+            SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, holding_days, buy_price, initial_capital, shares, metadata
+            FROM research_records
+            WHERE trade_date = ? AND prediction IN ('BUY', 'SELL', 'HOLD')
+            ORDER BY researcher_name
+        """, (last_date,))
+    
     pending_records = cursor.fetchall()
 
     print(f"找到 {len(pending_records)} 条待回测记录 (BUY/SELL/HOLD)")
@@ -278,13 +309,21 @@ def run_backtest(symbol: str = None, target_date: str = None, db_path: str = DB_
     # 获取 target_date 作为验证日期
     verify_date = target_date
 
-    # 只获取前一个日期的记录
-    cursor.execute(f"""
-        SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, holding_days, buy_price, initial_capital, shares, metadata
-        FROM research_records
-        WHERE trade_date = '{last_date}' AND prediction IN ('BUY', 'SELL', 'HOLD') {symbol_filter}
-        ORDER BY researcher_name
-    """)
+    # 只获取前一个日期的记录 - 使用参数化查询
+    if symbol:
+        cursor.execute("""
+            SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, holding_days, buy_price, initial_capital, shares, metadata
+            FROM research_records
+            WHERE trade_date = ? AND prediction IN ('BUY', 'SELL', 'HOLD') AND symbol = ?
+            ORDER BY researcher_name
+        """, (last_date, symbol))
+    else:
+        cursor.execute("""
+            SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, holding_days, buy_price, initial_capital, shares, metadata
+            FROM research_records
+            WHERE trade_date = ? AND prediction IN ('BUY', 'SELL', 'HOLD')
+            ORDER BY researcher_name
+        """, (last_date,))
 
     records = cursor.fetchall()
 
@@ -376,19 +415,32 @@ def run_backtest(symbol: str = None, target_date: str = None, db_path: str = DB_
     conn.commit()
     conn.close()
     
-    # 回测后输出记录
+    # 回测后输出记录 - 使用参数化查询
     print(f"\n=== 回测后 {symbol or '全部'} {target_date} 的记录 ===")
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute(f"""
-        SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, 
-               reasoning, outcome, verified_date, actual_return, holding_days, created_at, 
-               metadata, buy_price, initial_capital, shares, total_return, backtest_date, backtest_price
-        FROM research_records 
-        WHERE trade_date <= '{target_date}' 
-        AND prediction IN ('BUY', 'SELL', 'HOLD') {symbol_filter}
-        ORDER BY symbol, trade_date, researcher_name
-    """)
+    
+    if symbol:
+        cursor.execute("""
+            SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, 
+                   reasoning, outcome, verified_date, actual_return, holding_days, created_at, 
+                   metadata, buy_price, initial_capital, shares, total_return, backtest_date, backtest_price
+            FROM research_records 
+            WHERE trade_date <= ? 
+            AND prediction IN ('BUY', 'SELL', 'HOLD')
+            AND symbol = ?
+            ORDER BY symbol, trade_date, researcher_name
+        """, (target_date, symbol))
+    else:
+        cursor.execute("""
+            SELECT id, researcher_name, researcher_type, symbol, trade_date, prediction, confidence, 
+                   reasoning, outcome, verified_date, actual_return, holding_days, created_at, 
+                   metadata, buy_price, initial_capital, shares, total_return, backtest_date, backtest_price
+            FROM research_records 
+            WHERE trade_date <= ? 
+            AND prediction IN ('BUY', 'SELL', 'HOLD')
+            ORDER BY symbol, trade_date, researcher_name
+        """, (target_date,))
     all_records = cursor.fetchall()
     for r in all_records:
         print(f"ID:{r[0]} | {r[3]} | {r[4]} | {r[1]} | {r[5]} | conf:{r[6]} | outcome:{r[8]} | buy_price:{r[14]} | shares:{r[16]} | total_return:{r[17]} | backtest_date:{r[18]} | backtest_price:{r[19]}")
