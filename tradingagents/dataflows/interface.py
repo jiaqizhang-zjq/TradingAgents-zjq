@@ -328,13 +328,15 @@ def _local_get_chart_patterns(symbol, start_date, end_date, lookback=60, *args, 
         
         df.reset_index(inplace=True)
         
-        df_clean = pd.DataFrame()
-        df_clean['timestamp'] = df['timestamp']
-        df_clean['open'] = df['Open']
-        df_clean['high'] = df['High']
-        df_clean['low'] = df['Low']
-        df_clean['close'] = df['Close']
-        df_clean['volume'] = df['Volume']
+        # 优化：直接 rename 而不是创建新 DataFrame
+        df_clean = df.rename(columns={
+            'timestamp': 'timestamp',
+            'Open': 'open',
+            'High': 'high',
+            'Low': 'low',
+            'Close': 'close',
+            'Volume': 'volume'
+        })[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
         
         print(f"[_local_get_chart_patterns] calling identify_all_patterns...")
         patterns = ChartPatterns.identify_all_patterns(df_clean, lookback)
