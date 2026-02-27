@@ -1,4 +1,11 @@
 import os
+from .constants import (
+    MAX_DEBATE_ROUNDS,
+    MAX_RISK_DISCUSS_ROUNDS,
+    MAX_RECUR_LIMIT,
+    DEFAULT_OUTPUT_LANGUAGE,
+    CACHE_TTL_HOURS
+)
 
 DEFAULT_CONFIG = {
     "project_dir": os.path.abspath(os.path.join(os.path.dirname(__file__), ".")),
@@ -16,12 +23,12 @@ DEFAULT_CONFIG = {
     "google_thinking_level": None,      # "high", "minimal", etc.
     "openai_reasoning_effort": None,    # "medium", "high", "low"
     # Debate and discussion settings
-    "max_debate_rounds": 2,
-    "max_risk_discuss_rounds": 2,
-    "max_recur_limit": 100,
+    "max_debate_rounds": MAX_DEBATE_ROUNDS,
+    "max_risk_discuss_rounds": MAX_RISK_DISCUSS_ROUNDS,
+    "max_recur_limit": MAX_RECUR_LIMIT,
     # Language configuration - 输出语言设置
     # Options: "zh" (中文), "en" (English), "auto" (自动检测)
-    "output_language": "zh",
+    "output_language": DEFAULT_OUTPUT_LANGUAGE,
     # Data vendor configuration
     # Category-level configuration (default for all tools in category)
     "data_vendors": {
@@ -45,5 +52,9 @@ DEFAULT_CONFIG = {
     # Backtest settings
     "backtest": {
         "enabled": True,  # 是否开启回测功能
+    },
+    # Cache settings
+    "cache": {
+        "ttl_hours": CACHE_TTL_HOURS,  # 默认缓存时长（小时）
     },
 }

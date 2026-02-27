@@ -152,73 +152,96 @@ def _local_get_indicators(symbol, indicator, curr_date, look_back_days, *args, *
     return result_df.to_csv(index=False)
 
 
+def _ensure_stock_data(symbol: str, curr_date: str, look_back_days: int, stock_data: str = '') -> str:
+    """确保有股票数据，如果没有则获取"""
+    if stock_data:
+        return stock_data
+    
+    from datetime import datetime, timedelta
+    manager = get_data_manager()
+    end_date = curr_date
+    start_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=look_back_days + 60)).strftime("%Y-%m-%d")
+    return manager.fetch("get_stock_data", symbol, start_date, end_date)
+
+
+def _prepare_clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """准备干净的DataFrame用于指标计算"""
+    df.reset_index(inplace=True)
+    
+    # 优化：避免创建新 DataFrame，使用 rename
+    df_clean = df.rename(columns={
+        'timestamp': 'timestamp',
+        'Open': 'open',
+        'High': 'high',
+        'Low': 'low',
+        'Close': 'close',
+        'Volume': 'volume'
+    })[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+    
+    return df_clean
+
+
+def _collect_all_needed_indicators() -> set:
+    """收集所有分组需要的指标（去重）"""
+    from .indicator_groups import INDICATOR_GROUPS, BASE_COLUMNS
+    
+    all_needed_indicators = set()
+    for group_name, indicators in INDICATOR_GROUPS.items():
+        for ind in indicators:
+            if ind not in BASE_COLUMNS:
+                all_needed_indicators.add(ind)
+    return all_needed_indicators
+
+
+def _build_grouped_results(df_with_indicators: pd.DataFrame, look_back_days: int) -> dict:
+    """按分组构建结果字典"""
+    from .indicator_groups import INDICATOR_GROUPS
+    
+    result = {}
+    for group_name, indicators in INDICATOR_GROUPS.items():
+        group_df = df_with_indicators[[col for col in indicators if col in df_with_indicators.columns]]
+        group_df = group_df.tail(look_back_days + 10)
+        result[group_name] = group_df.to_csv(index=False)
+    return result
+
+
 def _local_get_all_indicators(symbol, curr_date, look_back_days, stock_data='', *args, **kwargs):
     """本地计算所有技术指标，一次性返回所有分组（使用惰性计算优化）"""
-    from datetime import datetime, timedelta
     from .lazy_indicators import get_lazy_calculator
-    from .indicator_groups import INDICATOR_GROUPS, BASE_COLUMNS
     import traceback
     
     try:
         print(f"[_local_get_all_indicators] symbol={symbol}, curr_date={curr_date}, look_back_days={look_back_days}")
         print(f"[_local_get_all_indicators] stock_data length={len(stock_data) if stock_data else 0}")
         
-        manager = get_data_manager()
+        # 1. 确保有股票数据
+        stock_data = _ensure_stock_data(symbol, curr_date, look_back_days, stock_data)
         
-        if not stock_data:
-            end_date = curr_date
-            start_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=look_back_days + 60)).strftime("%Y-%m-%d")
-            stock_data = manager.fetch("get_stock_data", symbol, start_date, end_date)
-        
+        # 2. 解析并验证数据
         df = _parse_stock_data(stock_data)
-        
         if df is None:
             raise DataFetchError("Failed to parse stock data")
-        
         print(f"[_local_get_all_indicators] df parsed, shape={df.shape}")
         
-        df.reset_index(inplace=True)
-        
-        # 准备干净的 DataFrame（优化：避免创建新 DataFrame）
-        df_clean = df.rename(columns={
-            'timestamp': 'timestamp',
-            'Open': 'open',
-            'High': 'high',
-            'Low': 'low',
-            'Close': 'close',
-            'Volume': 'volume'
-        })[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
-        
+        # 3. 准备干净的 DataFrame
+        df_clean = _prepare_clean_dataframe(df)
         print(f"[_local_get_all_indicators] df_clean shape={df_clean.shape}")
-        print(f"[_local_get_all_indicators] using lazy calculator...")
         
-        # 使用惰性计算器
-        lazy_calc = get_lazy_calculator(df_clean)
-        
-        # 收集所有分组需要的指标（去重）
-        all_needed_indicators = set()
-        for group_name, indicators in INDICATOR_GROUPS.items():
-            for ind in indicators:
-                if ind not in BASE_COLUMNS:
-                    all_needed_indicators.add(ind)
-        
+        # 4. 收集所有需要的指标
+        all_needed_indicators = _collect_all_needed_indicators()
         print(f"[_local_get_all_indicators] calculating {len(all_needed_indicators)} unique indicators...")
         
-        # 批量计算所有需要的指标
+        # 5. 批量计算指标
+        lazy_calc = get_lazy_calculator(df_clean)
         df_with_indicators = lazy_calc.get_indicators(list(all_needed_indicators))
         
+        # 6. 构建分组结果
         print(f"[_local_get_all_indicators] building result groups...")
-        
-        # 按分组返回结果
-        result = {}
-        for group_name, indicators in INDICATOR_GROUPS.items():
-            group_df = df_with_indicators[[col for col in indicators if col in df_with_indicators.columns]]
-            group_df = group_df.tail(look_back_days + 10)
-            result[group_name] = group_df.to_csv(index=False)
+        result = _build_grouped_results(df_with_indicators, look_back_days)
         
         print(f"[_local_get_all_indicators] done, result has {len(result)} groups")
-        
         return result
+        
     except Exception as e:
         print(f"[_local_get_all_indicators] ERROR: {e}")
         print(f"[_local_get_all_indicators] Traceback:\n{traceback.format_exc()}")

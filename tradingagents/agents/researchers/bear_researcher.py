@@ -4,6 +4,7 @@
 
 from tradingagents.agents.prompt_templates import STANDARD_BEAR_PROMPT_EN, STANDARD_BEAR_PROMPT_ZH
 from tradingagents.agents.researchers.base_researcher import BaseResearcher
+from tradingagents.constants import DEFAULT_BEAR_WIN_RATE
 
 
 # 使用模板中的提示词
@@ -29,6 +30,6 @@ def create_bear_researcher(llm, memory):
         system_prompts=SYSTEM_PROMPTS,
         llm=llm,
         memory=memory,
-        default_win_rate=0.48
+        default_win_rate=DEFAULT_BEAR_WIN_RATE
     )
     return researcher.create_node()
