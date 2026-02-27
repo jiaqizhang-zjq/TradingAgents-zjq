@@ -32,11 +32,11 @@
 **文件**: `tradingagents/agents/backtest.py`
 **问题**: 字符串拼接构建SQL查询
 **行动**:
-- [ ] 重构 `get_historical_win_rates()` (169-182行)
-- [ ] 重构 `get_recent_predictions()` (183-197行) 
-- [ ] 重构 `calculate_prediction_accuracy()` (198-222行)
-- [ ] 使用参数化查询替换所有字符串拼接
-- [ ] 添加输入验证函数
+- [x] 重构 `get_historical_win_rates()` (169-182行)
+- [x] 重构 `get_recent_predictions()` (183-197行) 
+- [x] 重构 `calculate_prediction_accuracy()` (198-222行)
+- [x] 使用参数化查询替换所有字符串拼接
+- [x] 添加输入验证函数
 
 **预计时间**: 2小时
 
@@ -45,12 +45,12 @@
 ### 🔴 P0-2: 添加全局输入验证
 **新文件**: `tradingagents/utils/validators.py`
 **行动**:
-- [ ] 创建验证器模块
-- [ ] 实现 `validate_symbol()` - 股票代码格式验证
-- [ ] 实现 `validate_date()` - 日期格式验证
-- [ ] 实现 `validate_date_range()` - 日期范围验证
-- [ ] 在所有数据获取函数入口添加验证
-- [ ] 定义自定义异常类 `ValidationError`
+- [x] 创建验证器模块
+- [x] 实现 `validate_symbol()` - 股票代码格式验证
+- [x] 实现 `validate_date()` - 日期格式验证
+- [x] 实现 `validate_date_range()` - 日期范围验证
+- [x] 在所有数据获取函数入口添加验证
+- [x] 定义自定义异常类 `ValidationError`
 
 **预计时间**: 1.5小时
 
@@ -60,11 +60,11 @@
 **文件**: `tradingagents/dataflows/complete_indicators.py`
 **问题**: 每次都计算所有指标，即使只需要部分
 **行动**:
-- [ ] 创建 `LazyIndicators` 类
-- [ ] 实现 `@cached_property` 装饰器模式
-- [ ] 将每个指标组（趋势、动量、波动性）独立计算
-- [ ] 添加 `calculate_only()` 方法接受指定指标列表
-- [ ] 更新调用方代码适配新接口
+- [x] 创建 `LazyIndicators` 类
+- [x] 实现 `@cached_property` 装饰器模式
+- [x] 将每个指标组（趋势、动量、波动性）独立计算
+- [x] 添加 `calculate_only()` 方法接受指定指标列表
+- [x] 更新调用方代码适配新接口
 
 **预计时间**: 2.5小时
 
@@ -74,10 +74,10 @@
 **文件**: `tradingagents/dataflows/interface.py`
 **问题**: 逐行处理CSV，效率低下
 **行动**:
-- [ ] 重构 `_parse_stock_data()` (188-210行)
-- [ ] 使用 `pd.read_csv(StringIO())` 替代手动解析
-- [ ] 移除循环处理，使用向量化操作
-- [ ] 添加数据验证和清洗逻辑
+- [x] 重构 `_parse_stock_data()` (188-210行)
+- [x] 使用 `pd.read_csv(StringIO())` 替代手动解析
+- [x] 移除循环处理，使用向量化操作
+- [x] 添加数据验证和清洗逻辑
 
 **预计时间**: 1.5小时
 
@@ -92,16 +92,16 @@
 - 新增: `tradingagents/agents/researchers/base_researcher.py`
 
 **行动**:
-- [ ] 创建 `BaseResearcher` 抽象基类
-- [ ] 提取共同方法:
+- [x] 创建 `BaseResearcher` 抽象基类
+- [x] 提取共同方法:
   - `_extract_prediction()` - 预测提取逻辑
   - `_infer_confidence()` - 置信度推断
   - `_format_win_rate_display()` - 胜率显示
   - `_record_research()` - 数据库记录
   - `_build_state_update()` - 状态更新
-- [ ] 重构 `BullResearcher` 继承 `BaseResearcher`
-- [ ] 重构 `BearResearcher` 继承 `BaseResearcher`
-- [ ] 验证功能不变
+- [x] 重构 `BullResearcher` 继承 `BaseResearcher`
+- [x] 重构 `BearResearcher` 继承 `BaseResearcher`
+- [x] 验证功能不变
 
 **预计时间**: 3小时
 **预期收益**: 代码量从424行减少到~150行 (减少65%)
@@ -113,13 +113,13 @@
 **目标函数**: `_local_get_all_indicators()` (140-191行, 51行)
 
 **行动**:
-- [ ] 拆分为:
+- [x] 拆分为:
   - `_ensure_stock_data()` - 数据获取/复用逻辑
   - `_parse_and_validate_dataframe()` - 解析和验证
   - `_prepare_clean_dataframe()` - 数据清洗
   - `_calculate_indicators()` - 指标计算
-- [ ] 每个函数单一职责，<15行
-- [ ] 添加docstring和类型注解
+- [x] 每个函数单一职责，<15行
+- [x] 添加docstring和类型注解
 
 **预计时间**: 1.5小时
 
@@ -130,11 +130,11 @@
 **问题**: 嵌套的正则+关键词+长度判断，难以理解
 
 **行动**:
-- [ ] 创建 `PredictionExtractor` 策略类
-- [ ] 实现 `RegexStrategy` - 正则匹配提取
-- [ ] 实现 `KeywordStrategy` - 关键词推断
-- [ ] 实现 `ConfidenceAnalyzer` - 置信度分析
-- [ ] 使用策略模式链式调用
+- [x] 创建 `PredictionExtractor` 策略类
+- [x] 实现 `RegexStrategy` - 正则匹配提取
+- [x] 实现 `KeywordStrategy` - 关键词推断
+- [x] 实现 `ConfidenceAnalyzer` - 置信度分析
+- [x] 使用策略模式链式调用
 
 **预计时间**: 2小时
 
@@ -143,8 +143,8 @@
 ### 🟡 P2-2: 添加类型注解和常量
 **影响范围**: 全项目
 **行动**:
-- [ ] 为所有公共函数添加类型注解
-- [ ] 创建 `tradingagents/constants.py`:
+- [x] 为所有公共函数添加类型注解
+- [x] 创建.*constants.py`:
   - `STRONG_CONFIDENCE = 0.75`
   - `WEAK_CONFIDENCE = 0.55`
   - `NEUTRAL_CONFIDENCE = 0.65`
@@ -152,7 +152,7 @@
   - `DEFAULT_BEAR_WIN_RATE = 0.48`
   - `MAX_RETRY_ATTEMPTS = 3`
   - `CACHE_TTL_HOURS = 24`
-- [ ] 替换所有magic numbers
+- [x] 替换所有magic numbers
 
 **预计时间**: 2小时
 
@@ -218,7 +218,7 @@
       def create_node(self, state: AgentState) -> Dict[str, Any]:
           pass
   ```
-- [ ] 创建 `AgentFactory`:
+- [x] 创建.*AgentFactory`:
   ```python
   class AgentFactory:
       @staticmethod
