@@ -11,7 +11,13 @@ def get_fundamentals(ticker: str, curr_date: str = None) -> str:
 
     Returns:
         str: Company overview data including financial ratios and key metrics
+        
+    Raises:
+        ValueError: 如果股票代码无效
     """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(ticker)
+    
     params = {
         "symbol": ticker,
     }
@@ -30,7 +36,13 @@ def get_balance_sheet(ticker: str, freq: str = "quarterly", curr_date: str = Non
 
     Returns:
         str: Balance sheet data with normalized fields
+        
+    Raises:
+        ValueError: 如果股票代码无效
     """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(ticker)
+    
     params = {
         "symbol": ticker,
     }
@@ -49,7 +61,13 @@ def get_cashflow(ticker: str, freq: str = "quarterly", curr_date: str = None) ->
 
     Returns:
         str: Cash flow statement data with normalized fields
+        
+    Raises:
+        ValueError: 如果股票代码无效
     """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(ticker)
+    
     params = {
         "symbol": ticker,
     }
@@ -68,7 +86,13 @@ def get_income_statement(ticker: str, freq: str = "quarterly", curr_date: str = 
 
     Returns:
         str: Income statement data with normalized fields
+        
+    Raises:
+        ValueError: 如果股票代码无效
     """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(ticker)
+    
     params = {
         "symbol": ticker,
     }

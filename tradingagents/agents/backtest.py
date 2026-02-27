@@ -19,10 +19,15 @@ sys.path.insert(0, PROJECT_ROOT)
 load_dotenv()
 
 from tradingagents.dataflows.interface import get_data_manager
+from tradingagents.utils.validators import validate_symbol, validate_date
 
 
 def get_price_on_date(symbol: str, target_date: str) -> float:
     """获取指定日期的股票价格"""
+    # 输入验证
+    validate_symbol(symbol)
+    validate_date(target_date)
+    
     try:
         target_dt = datetime.strptime(target_date, "%Y-%m-%d")
         

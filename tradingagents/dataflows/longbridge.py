@@ -68,7 +68,14 @@ class LongbridgeAPI:
             
         Raises:
             Exception: 如果API调用失败
+            ValueError: 如果输入参数无效
         """
+        from tradingagents.utils.validators import validate_symbol, validate_date_range
+        
+        # 输入验证
+        validate_symbol(symbol)
+        validate_date_range(start_date, end_date)
+        
         self._initialize()
         
         # 转换日期
@@ -803,7 +810,13 @@ class LongbridgeAPI:
         """获取基本面数据
         
         使用长桥 API 的 static_info() 方法获取部分基本面数据
+        
+        Raises:
+            ValueError: 如果股票代码无效
         """
+        from tradingagents.utils.validators import validate_symbol
+        validate_symbol(symbol)
+        
         self._initialize()
         
         if self.quote_ctx is None:
@@ -912,7 +925,22 @@ def get_longbridge_api() -> LongbridgeAPI:
 
 @cached
 def get_stock(symbol: str, start_date: str, end_date: str) -> str:
-    """获取股票数据"""
+    """获取股票数据
+    
+    Args:
+        symbol: 股票代码
+        start_date: 开始日期 (yyyy-mm-dd)
+        end_date: 结束日期 (yyyy-mm-dd)
+        
+    Raises:
+        ValueError: 如果输入参数无效
+    """
+    from tradingagents.utils.validators import validate_symbol, validate_date_range
+    
+    # 输入验证
+    validate_symbol(symbol)
+    validate_date_range(start_date, end_date)
+    
     api = get_longbridge_api()
     return api.get_stock_data(symbol, start_date, end_date)
 
@@ -926,7 +954,17 @@ def get_indicator(symbol: str, indicator: str, curr_date: str, look_back_days: i
         indicator: 指标名称（单个字符串，不是列表）
         curr_date: 当前日期
         look_back_days: 回看天数
+        
+    Raises:
+        ValueError: 如果输入参数无效
     """
+    from tradingagents.utils.validators import validate_symbol, validate_date
+    
+    # 输入验证
+    validate_symbol(symbol)
+    validate_date(curr_date)
+    if look_back_days < 1 or look_back_days > 1000:
+        raise ValueError(f"look_back_days必须在1-1000之间，当前值：{look_back_days}")
     from datetime import datetime
     from dateutil.relativedelta import relativedelta
     from .indicator_groups import get_indicator_columns
@@ -961,46 +999,98 @@ def get_indicator(symbol: str, indicator: str, curr_date: str, look_back_days: i
 
 @cached
 def get_fundamentals(symbol: str, curr_date: str = None, *args, **kwargs) -> str:
-    """获取基本面数据"""
+    """获取基本面数据
+    
+    Raises:
+        ValueError: 如果股票代码无效
+    """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(symbol)
+    
     api = get_longbridge_api()
     return api.get_fundamentals(symbol)
 
 
 @cached
 def get_balance_sheet(symbol: str, freq: str = "quarterly", curr_date: str = None, *args, **kwargs) -> str:
-    """获取资产负债表"""
+    """获取资产负债表
+    
+    Raises:
+        ValueError: 如果股票代码无效
+    """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(symbol)
+    
     api = get_longbridge_api()
     return api.get_balance_sheet(symbol)
 
 
 @cached
 def get_cashflow(symbol: str, freq: str = "quarterly", curr_date: str = None, *args, **kwargs) -> str:
-    """获取现金流量表"""
+    """获取现金流量表
+    
+    Raises:
+        ValueError: 如果股票代码无效
+    """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(symbol)
+    
     api = get_longbridge_api()
     return api.get_cashflow(symbol)
 
 
 @cached
 def get_income_statement(symbol: str, freq: str = "quarterly", curr_date: str = None, *args, **kwargs) -> str:
-    """获取损益表"""
+    """获取损益表
+    
+    Raises:
+        ValueError: 如果股票代码无效
+    """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(symbol)
+    
     api = get_longbridge_api()
     return api.get_income_statement(symbol)
 
 
 def get_news(symbol: str, limit: int = 10) -> str:
-    """获取新闻"""
+    """获取新闻
+    
+    Raises:
+        ValueError: 如果股票代码无效或limit超出范围
+    """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(symbol)
+    if limit < 1 or limit > 100:
+        raise ValueError(f"limit必须在1-100之间，当前值：{limit}")
+    
     api = get_longbridge_api()
     return api.get_news(symbol, limit)
 
 
 def get_global_news(limit: int = 10) -> str:
-    """获取全球新闻"""
+    """获取全球新闻
+    
+    Raises:
+        ValueError: 如果limit超出范围
+    """
+    if limit < 1 or limit > 100:
+        raise ValueError(f"limit必须在1-100之间，当前值：{limit}")
+    
     api = get_longbridge_api()
     return api.get_global_news(limit)
 
 @cached
 def get_insider_transactions(symbol: str, limit: int = 10) -> str:
-    """获取内幕交易"""
+    """获取内幕交易
+    
+    Raises:
+        ValueError: 如果股票代码无效或limit超出范围
+    """
+    from tradingagents.utils.validators import validate_symbol
+    validate_symbol(symbol)
+    if limit < 1 or limit > 100:
+        raise ValueError(f"limit必须在1-100之间，当前值：{limit}")
     api = get_longbridge_api()
     return api.get_insider_transactions(symbol, limit)
 
