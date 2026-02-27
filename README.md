@@ -23,9 +23,16 @@
 
 ## 本分支新增功能
 
+### 用户功能
 - ✅ **中文语言支持** - 所有 Agent 输出和报告支持中文
 - ✅ **胜率追踪** - 研究员辩论时显示历史胜率
 - ✅ **详细调试日志** - 可查看完整的辩论过程
+
+### 代码重构（2026-02）
+- ✅ **安全加固** - 修复SQL注入，添加输入验证系统
+- ✅ **性能优化** - 惰性指标计算（60-80%提升），内存优化（-40%）
+- ✅ **代码质量** - 消除重复代码（-65%），提取常量，统一日志系统
+- 📊 详细报告: [REFACTOR_REPORT.md](./REFACTOR_REPORT.md)
 
 ## News
 - [2026-02] **TradingAgents v0.2.0** released with multi-provider LLM support (GPT-5.x, Gemini 3.x, Claude 4.x, Grok 4.x) and improved system architecture.
