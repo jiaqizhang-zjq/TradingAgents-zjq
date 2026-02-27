@@ -10,8 +10,8 @@ from typing import Dict, Optional
 from tradingagents.agents.prompt_templates import (
     STANDARD_BULL_PROMPT_ZH, STANDARD_BULL_PROMPT_EN,
     STANDARD_BEAR_PROMPT_ZH, STANDARD_BEAR_PROMPT_EN,
-    MODERATE_ANALYST_PROMPT_ZH, MODERATE_ANALYST_PROMPT_EN,
-    AGGRESSIVE_ANALYST_PROMPT_ZH, AGGRESSIVE_ANALYST_PROMPT_EN
+    STANDARD_CONSERVATIVE_PROMPT_ZH,
+    STANDARD_AGGRESSIVE_PROMPT_ZH
 )
 
 
@@ -28,13 +28,13 @@ class PromptLoader:
             "zh": STANDARD_BEAR_PROMPT_ZH,
             "en": STANDARD_BEAR_PROMPT_EN
         },
-        "moderate_analyst": {
-            "zh": MODERATE_ANALYST_PROMPT_ZH,
-            "en": MODERATE_ANALYST_PROMPT_EN
+        "conservative_analyst": {
+            "zh": STANDARD_CONSERVATIVE_PROMPT_ZH,
+            "en": ""  # 暂无英文版
         },
         "aggressive_analyst": {
-            "zh": AGGRESSIVE_ANALYST_PROMPT_ZH,
-            "en": AGGRESSIVE_ANALYST_PROMPT_EN
+            "zh": STANDARD_AGGRESSIVE_PROMPT_ZH,
+            "en": ""  # 暂无英文版
         }
     }
     
