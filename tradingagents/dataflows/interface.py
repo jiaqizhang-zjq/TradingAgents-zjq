@@ -56,6 +56,9 @@ from .unified_data_manager import (
 # Configuration and routing logic
 from .config import get_config
 
+# 导入依赖注入容器
+from tradingagents.core.container import get_container
+
 # ========== LOCAL VENDOR 实现 ==========
 def _parse_stock_data(stock_data_str):
     """解析股票数据字符串为DataFrame"""
@@ -395,14 +398,17 @@ def _local_get_chart_patterns(symbol, start_date, end_date, lookback=60, *args, 
 # ========== 数据管理器初始化 ==========
 def get_data_manager() -> UnifiedDataManager:
     """
-    获取数据管理器实例（单例模式，线程安全）
+    获取数据管理器实例（通过依赖注入容器）
     
-    使用函数属性存储实例，避免全局变量
+    使用依赖注入容器管理单例，支持测试和多实例场景
     """
-    if not hasattr(get_data_manager, '_instance'):
-        get_data_manager._instance = _init_data_manager()
+    container = get_container()
     
-    return get_data_manager._instance
+    # 如果未注册，则注册并初始化
+    if not container.has('data_manager'):
+        container.register('data_manager', _init_data_manager, singleton=True)
+    
+    return container.get('data_manager')
 
 def _init_data_manager() -> UnifiedDataManager:
     """初始化数据管理器"""

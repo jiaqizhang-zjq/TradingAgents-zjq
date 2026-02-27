@@ -9,6 +9,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
+# 导入依赖注入容器
+from tradingagents.core.container import get_container
+
 
 class ReportSaver:
     """
@@ -304,13 +307,16 @@ class ReportSaver:
         return history[:limit]
 
 
-# 全局实例
-_report_saver = None
-
-
 def get_report_saver(base_dir: str = "reports") -> ReportSaver:
-    """获取全局 ReportSaver 实例"""
-    global _report_saver
-    if _report_saver is None:
-        _report_saver = ReportSaver(base_dir)
-    return _report_saver
+    """
+    获取 ReportSaver 实例（通过依赖注入容器）
+    
+    使用依赖注入容器管理单例，支持测试和多实例场景
+    """
+    container = get_container()
+    
+    # 如果未注册，则注册并初始化
+    if not container.has('report_saver'):
+        container.register('report_saver', lambda: ReportSaver(base_dir), singleton=True)
+    
+    return container.get('report_saver')

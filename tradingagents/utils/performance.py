@@ -71,8 +71,16 @@ class PerformanceTracker:
         self._stats.clear()
 
 
-# 全局性能追踪器
-_tracker = PerformanceTracker()
+# 全局性能追踪器（使用依赖注入容器管理）
+def get_performance_tracker() -> PerformanceTracker:
+    """获取性能追踪器实例（通过依赖注入容器）"""
+    from tradingagents.core.container import get_container
+    container = get_container()
+    
+    if not container.has('performance_tracker'):
+        container.register('performance_tracker', lambda: PerformanceTracker(), singleton=True)
+    
+    return container.get('performance_tracker')
 
 
 def track_performance(func_type: str = None):

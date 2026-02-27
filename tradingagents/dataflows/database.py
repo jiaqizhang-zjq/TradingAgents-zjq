@@ -11,6 +11,9 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 from contextlib import contextmanager
 
+# 导入依赖注入容器
+from tradingagents.core.container import get_container
+
 
 @dataclass
 class AnalysisReport:
@@ -469,10 +472,16 @@ class TradingDatabase:
         return filepath
 
 
-# 全局数据库实例
-db = TradingDatabase()
-
-
-def get_db() -> TradingDatabase:
-    """获取数据库实例"""
-    return db
+def get_db(db_path: str = "tradingagents/db/trading_analysis.db") -> TradingDatabase:
+    """
+    获取数据库实例（通过依赖注入容器）
+    
+    使用依赖注入容器管理单例，支持测试和多实例场景
+    """
+    container = get_container()
+    
+    # 如果未注册，则注册并初始化
+    if not container.has('trading_database'):
+        container.register('trading_database', lambda: TradingDatabase(db_path), singleton=True)
+    
+    return container.get('trading_database')

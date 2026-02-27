@@ -12,6 +12,9 @@ from dataclasses import dataclass, asdict
 from contextlib import contextmanager
 from enum import Enum
 
+# 导入依赖注入容器
+from tradingagents.core.container import get_container
+
 
 class ResearchOutcome(Enum):
     """研究结果 outcomes"""
@@ -796,9 +799,9 @@ class ResearchTracker:
 
 def get_research_tracker(db_path: str = "tradingagents/db/research_tracker.db") -> ResearchTracker:
     """
-    获取 ResearchTracker 实例（单例模式，线程安全）
+    获取 ResearchTracker 实例（通过依赖注入容器）
     
-    使用函数属性存储实例，避免全局变量
+    使用依赖注入容器管理单例，支持测试和多实例场景
     
     Args:
         db_path: 数据库路径
@@ -806,6 +809,10 @@ def get_research_tracker(db_path: str = "tradingagents/db/research_tracker.db") 
     Returns:
         ResearchTracker 实例
     """
-    if not hasattr(get_research_tracker, '_instance'):
-        get_research_tracker._instance = ResearchTracker(db_path)
-    return get_research_tracker._instance
+    container = get_container()
+    
+    # 如果未注册，则注册并初始化
+    if not container.has('research_tracker'):
+        container.register('research_tracker', lambda: ResearchTracker(db_path), singleton=True)
+    
+    return container.get('research_tracker')
