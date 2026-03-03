@@ -1,4 +1,4 @@
-# TradingAgents/graph/trading_graph.py
+# TradingAgents/graph/trading_graph.py (重构后简化版)
 
 import os
 from pathlib import Path
@@ -20,9 +20,7 @@ from tradingagents.agents.utils.agent_states import (
     RiskDebateState,
 )
 from tradingagents.dataflows.config import set_config
-from tradingagents.dataflows.database import AnalysisReport, get_db
-from tradingagents.dataflows.research_tracker import get_research_tracker
-from tradingagents.report_saver import get_report_saver
+from .helpers import StatePersistence
 
 # Import the new abstract tool methods from agent_utils
 from tradingagents.agents.utils.agent_utils import (
@@ -65,6 +63,9 @@ class TradingAgentsGraph:
         self.debug = debug
         self.config = config or DEFAULT_CONFIG
         self.callbacks = callbacks or []
+        
+        # 初始化持久化管理器
+        self.persistence = StatePersistence(debug=debug)
 
         # Update the interface's config
         set_config(self.config)
@@ -325,7 +326,7 @@ class TradingAgentsGraph:
         return final_state, self.process_signal(final_state["final_trade_decision"])
 
     def _log_state(self, trade_date, final_state):
-        """Log the final state to a JSON file and save to database."""
+        """Log the final state（委托给persistence模块）"""
         self.log_states_dict[str(trade_date)] = {
             "company_of_interest": final_state["company_of_interest"],
             "trade_date": final_state["trade_date"],
@@ -338,12 +339,8 @@ class TradingAgentsGraph:
                 "bull_history": final_state["investment_debate_state"]["bull_history"],
                 "bear_history": final_state["investment_debate_state"]["bear_history"],
                 "history": final_state["investment_debate_state"]["history"],
-                "current_response": final_state["investment_debate_state"][
-                    "current_response"
-                ],
-                "judge_decision": final_state["investment_debate_state"][
-                    "judge_decision"
-                ],
+                "current_response": final_state["investment_debate_state"]["current_response"],
+                "judge_decision": final_state["investment_debate_state"]["judge_decision"],
             },
             "trader_investment_decision": final_state["trader_investment_plan"],
             "risk_debate_state": {
@@ -356,257 +353,10 @@ class TradingAgentsGraph:
             "investment_plan": final_state["investment_plan"],
             "final_trade_decision": final_state["final_trade_decision"],
         }
-
-        # Save to file - disabled
-        # directory = Path(f"eval_results/{self.ticker}/TradingAgentsStrategy_logs/")
-        # directory.mkdir(parents=True, exist_ok=True)
         
-        # with open(
-        #     f"eval_results/{self.ticker}/TradingAgentsStrategy_logs/full_states_log_{trade_date}.json",
-        #     "w",
-        # ) as f:
-        #     json.dump(self.log_states_dict, f, indent=4)
-        
-        # Save to database
-        self._save_to_database(final_state)
-        
-        # Record researcher predictions for win rate tracking
-        self._record_research_predictions(final_state)
+        # 委托给persistence模块
+        self.persistence.save_all(final_state)
     
-    def _save_to_database(self, final_state):
-        """Save the analysis results to database and files."""
-        from tradingagents.agents.utils.agent_utils import is_market_open
-        
-        symbol = final_state["company_of_interest"]
-        trade_date = final_state["trade_date"]
-        
-        # 检查指定日期是否开盘
-        if not is_market_open(symbol, trade_date):
-            if self.debug:
-                print(f"⏰ {trade_date} 非开盘时间，跳过保存数据库")
-            return
-        
-        try:
-            db = get_db()
-            
-            # Create report object
-            report = AnalysisReport(
-                symbol=symbol,
-                trade_date=trade_date,
-                created_at=datetime.now().isoformat(),
-                market_report=final_state.get("market_report", ""),
-                fundamentals_report=final_state.get("fundamentals_report", ""),
-                candlestick_report=final_state.get("candlestick_report", ""),
-                sentiment_report=final_state.get("sentiment_report", ""),
-                news_report=final_state.get("news_report", ""),
-                investment_plan=final_state.get("investment_plan", ""),
-                trader_investment_plan=final_state.get("trader_investment_plan", ""),
-                final_trade_decision=final_state.get("final_trade_decision", ""),
-                tool_calls_jsonl="",
-                metadata=json.dumps({
-                    "source": "TradingAgentsGraph",
-                    "saved_at": datetime.now().isoformat()
-                })
-            )
-            
-            # Save to database
-            success = db.save_analysis_report(report)
-            
-            if success:
-                print(f"✅ 分析结果已保存到数据库: {symbol} @ {trade_date}")
-            else:
-                print(f"❌ 保存到数据库失败")
-            
-            # Save to files
-            self._save_to_files(final_state)
-                
-        except Exception as e:
-            print(f"❌ 数据库保存错误: {e}")
-    
-    def _save_to_files(self, final_state):
-        """Save the analysis results to files."""
-        try:
-            saver = get_report_saver()
-            
-            symbol = final_state["company_of_interest"]
-            trade_date = final_state["trade_date"]
-            
-            # Get debate states
-            investment_debate_state = final_state.get("investment_debate_state", {})
-            risk_debate_state = final_state.get("risk_debate_state", {})
-            
-            # Save all reports
-            saver.save_analysis_reports(
-                symbol=symbol,
-                trade_date=trade_date,
-                market_report=final_state.get("market_report", ""),
-                sentiment_report=final_state.get("sentiment_report", ""),
-                news_report=final_state.get("news_report", ""),
-                fundamentals_report=final_state.get("fundamentals_report", ""),
-                candlestick_report=final_state.get("candlestick_report", ""),
-                investment_debate_state=investment_debate_state,
-                risk_debate_state=risk_debate_state,
-                trader_report=final_state.get("trader_investment_plan", ""),
-                investment_plan=final_state.get("investment_plan", ""),
-                final_trade_decision=final_state.get("final_trade_decision", "")
-            )
-                
-        except Exception as e:
-            print(f"❌ 文件保存错误: {e}")
-    
-    def _record_research_predictions(self, final_state):
-        """Record bull and bear researcher predictions for win rate tracking."""
-        from tradingagents.agents.utils.agent_utils import is_market_open
-        
-        symbol = final_state["company_of_interest"]
-        trade_date = final_state["trade_date"]
-        
-        # 检查指定日期是否开盘
-        if not is_market_open(symbol, trade_date):
-            if self.debug:
-                print(f"⏰ {trade_date} 非开盘时间，跳过记录预测")
-            return
-        
-        try:
-            tracker = get_research_tracker()
-            
-            # Extract investment debate state
-            invest_debate = final_state.get("investment_debate_state", {})
-            
-            # Record bull researcher - use prediction from state
-            bull_prediction = invest_debate.get("bull_prediction", "HOLD")
-            bull_confidence = invest_debate.get("bull_confidence", 0.8)
-            if bull_prediction:
-                tracker.record_research(
-                    researcher_name="bull_researcher",
-                    researcher_type="bull",
-                    symbol=symbol,
-                    trade_date=trade_date,
-                    prediction=bull_prediction,
-                    confidence=bull_confidence,
-                    reasoning=invest_debate.get("bull_history", "")
-                )
-            
-            # Record bear researcher - use prediction from state
-            bear_prediction = invest_debate.get("bear_prediction", "HOLD")
-            bear_confidence = invest_debate.get("bear_confidence", 0.8)
-            if bear_prediction:
-                tracker.record_research(
-                    researcher_name="bear_researcher",
-                    researcher_type="bear",
-                    symbol=symbol,
-                    trade_date=trade_date,
-                    prediction=bear_prediction,
-                    confidence=bear_confidence,
-                    reasoning=invest_debate.get("bear_history", "")
-                )
-            
-            # Record research manager
-            manager_prediction = invest_debate.get("research_manager_prediction", "HOLD")
-            manager_confidence = invest_debate.get("research_manager_confidence", 0.85)
-            if manager_prediction:
-                tracker.record_research(
-                    researcher_name="research_manager",
-                    researcher_type="manager",
-                    symbol=symbol,
-                    trade_date=trade_date,
-                    prediction=manager_prediction,
-                    confidence=manager_confidence,
-                    reasoning=invest_debate.get("judge_decision", "")
-                )
-            
-            # Record risk debate participants
-            risk_debate = final_state.get("risk_debate_state", {})
-            
-            # Aggressive risk analyst
-            aggressive_prediction = risk_debate.get("aggressive_prediction", "HOLD")
-            aggressive_confidence = risk_debate.get("aggressive_confidence", 0.7)
-            if aggressive_prediction:
-                tracker.record_research(
-                    researcher_name="aggressive_risk",
-                    researcher_type="aggressive",
-                    symbol=symbol,
-                    trade_date=trade_date,
-                    prediction=aggressive_prediction,
-                    confidence=aggressive_confidence,
-                    reasoning=risk_debate.get("aggressive_history", "")
-                )
-            
-            # Conservative risk analyst
-            conservative_prediction = risk_debate.get("conservative_prediction", "HOLD")
-            conservative_confidence = risk_debate.get("conservative_confidence", 0.7)
-            if conservative_prediction:
-                tracker.record_research(
-                    researcher_name="conservative_risk",
-                    researcher_type="conservative",
-                    symbol=symbol,
-                    trade_date=trade_date,
-                    prediction=conservative_prediction,
-                    confidence=conservative_confidence,
-                    reasoning=risk_debate.get("conservative_history", "")
-                )
-            
-            # Neutral risk analyst
-            neutral_prediction = risk_debate.get("neutral_prediction", "HOLD")
-            neutral_confidence = risk_debate.get("neutral_confidence", 0.75)
-            if neutral_prediction:
-                tracker.record_research(
-                    researcher_name="neutral_risk",
-                    researcher_type="neutral",
-                    symbol=symbol,
-                    trade_date=trade_date,
-                    prediction=neutral_prediction,
-                    confidence=neutral_confidence,
-                    reasoning=risk_debate.get("neutral_history", "")
-                )
-            
-            # Record final trader decision
-            trader_prediction = final_state.get("trader_prediction", "HOLD")
-            trader_confidence = final_state.get("trader_confidence", 0.9)
-            tracker.record_research(
-                researcher_name="trader",
-                researcher_type="trader",
-                symbol=symbol,
-                trade_date=trade_date,
-                prediction=trader_prediction,
-                confidence=trader_confidence,
-                reasoning=final_state.get("final_trade_decision", "")
-            )
-            
-            # Record risk manager decision
-            risk_prediction = risk_debate.get("risk_manager_prediction", "HOLD")
-            risk_confidence = risk_debate.get("risk_manager_confidence", 0.8)
-            tracker.record_research(
-                researcher_name="risk_manager",
-                researcher_type="risk_manager",
-                symbol=symbol,
-                trade_date=trade_date,
-                prediction=risk_prediction,
-                confidence=risk_confidence,
-                reasoning=risk_debate.get("judge_decision", "")
-            )
-            
-            print(f"✅ 研究员预测已记录到胜率追踪器")
-            
-        except Exception as e:
-            print(f"❌ 记录研究员预测失败: {e}")
-            import traceback
-            print(f"   错误详情: {traceback.format_exc()}")
-    
-    def _extract_prediction_from_content(self, content: str) -> str:
-        """Extract BUY/SELL/HOLD prediction from text content."""
-        content_upper = content.upper()
-        
-        # 支持中英文关键词
-        if "买入" in content or "BUY" in content_upper:
-            return "BUY"
-        elif "卖出" in content or "SELL" in content_upper:
-            return "SELL"
-        elif "持有" in content or "HOLD" in content_upper:
-            return "HOLD"
-        else:
-            return "HOLD"
-
     def reflect_and_remember(self, returns_losses):
         """Reflect on decisions and update memory based on returns."""
         self.reflector.reflect_bull_researcher(
