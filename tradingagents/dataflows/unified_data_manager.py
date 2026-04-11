@@ -3,60 +3,22 @@ import random
 import pandas as pd
 import numpy as np
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 from datetime import datetime, timedelta
 
 from .data_cache import get_data_cache
 
+# 从模型模块导入（v2.0 模块化拆分）
+from .vendor_models import (
+    RateLimitError,
+    DataFetchError,
+    VendorPriority,
+    VendorConfig,
+    FetchStats,
+    VendorStats,
+)
 
-class RateLimitError(Exception):
-    """限流错误"""
-    pass
-
-
-class DataFetchError(Exception):
-    """数据获取错误"""
-    pass
-
-
-class VendorPriority(Enum):
-    """数据源优先级"""
-    PRIMARY = 1
-    SECONDARY = 2
-    FALLBACK = 3
-
-
-@dataclass
-class VendorConfig:
-    """数据源配置"""
-    name: str
-    priority: VendorPriority = VendorPriority.SECONDARY
-    max_retries: int = 3
-    retry_delay_base: float = 1.0
-    retry_delay_max: float = 10.0
-    rate_limit_wait: float = 5.0
-    rate_limit_max_retries: int = 5
-    enabled: bool = True
-
-
-@dataclass
-class FetchStats:
-    """获取统计"""
-    total_calls: int = 0
-    successful_calls: int = 0
-    failed_calls: int = 0
-    rate_limit_hits: int = 0
-    total_wait_time: float = 0.0
-
-
-@dataclass
-class VendorStats:
-    """数据源统计"""
-    name: str
-    stats: FetchStats = field(default_factory=FetchStats)
-    last_error: Optional[str] = None
-    last_success: Optional[datetime] = None
+# 向后兼容：保留VendorNotFoundError导出（从vendor_models中导入）
+from .vendor_models import VendorNotFoundError
 
 
 class UnifiedDataManager:
