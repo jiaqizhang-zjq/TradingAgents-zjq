@@ -327,7 +327,7 @@ cp .env.example .env
 # 编辑 .env 文件
 
 # 6. 运行项目
-uv run python main.py
+uv run python run_trading.py
 
 # 7. 运行测试
 uv run pytest

@@ -217,15 +217,39 @@ __marimo__/
 
 # Cache
 **/data_cache/
+**/indicator_cache/
 
 # Logs
 *.log
+*.txt.log
 trading_log.txt
+tsla_log.txt
 logs/
 
-# Reports
+# Reports (generated at runtime)
 reports/
 eval_results/
 
 # Databases
 tradingagents/db/
+
+# Backup files
+*.bak
+*_backup.py
+
+# Coverage reports
+htmlcov/
+.coverage
+
+# Temporary test scripts
+test_price.py
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# CodeBuddy
+.codebuddy/

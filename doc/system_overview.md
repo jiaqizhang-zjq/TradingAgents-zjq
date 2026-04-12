@@ -38,111 +38,16 @@
 | 内存系统 | 存储和检索历史经验 | tradingagents/agents/utils/memory.py |
 | 回测系统 | 验证预测结果 | tradingagents/agents/backtest.py |
 
-## 2. 数据表统一说明
+## 2. 数据库
 
-### 2.1 数据库概览
+> 📖 完整的数据库表结构、字段说明和数据统计请参见 [database.md](database.md)。
+
+系统使用两个 SQLite 数据库：
 
 | 数据库 | 用途 | 位置 |
 |--------|------|------|
-| research_tracker.db | 存储预测、回测和内存记录 | /TradingAgents/ |
-| trading_analysis.db | 存储分析报告和工具调用 | /TradingAgents/tradingagents/db/ |
-
-### 2.2 research_tracker.db 表结构
-
-#### 2.2.1 research_records (研究记录表)
-
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| id | INTEGER | 主键，自增 |
-| researcher_name | TEXT | 研究员名称 (如 bull_researcher) |
-| researcher_type | TEXT | 研究员类型 (bull/bear/manager/trader) |
-| symbol | TEXT | 股票代码 |
-| trade_date | TEXT | 交易日期 |
-| prediction | TEXT | 预测结果 (BUY/SELL/HOLD) |
-| confidence | REAL | 置信度 (0.0-1.0) |
-| reasoning | TEXT | 推理过程 |
-| outcome | TEXT | 结果状态 (pending/correct/incorrect/partial) |
-| verified_date | TEXT | 验证日期 |
-| actual_return | REAL | 实际收益率 |
-| total_return | REAL | 总收益金额 |
-| holding_days | INTEGER | 持有天数 |
-| created_at | TEXT | 创建时间 |
-| metadata | TEXT | 额外元数据 (JSON) |
-| buy_price | REAL | 买入价格 |
-| initial_capital | REAL | 初始资金 |
-| shares | REAL | 头寸数量 |
-
-#### 2.2.2 researcher_configs (研究员配置表)
-
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| id | INTEGER | 主键，自增 |
-| researcher_name | TEXT | 研究员名称 (唯一) |
-| researcher_type | TEXT | 研究员类型 |
-| description | TEXT | 描述 |
-| is_active | BOOLEAN | 是否激活 |
-| created_at | TEXT | 创建时间 |
-| config_json | TEXT | 配置 JSON |
-
-#### 2.2.3 stock_returns (股票收益表)
-
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| id | INTEGER | 主键，自增 |
-| symbol | TEXT | 股票代码 |
-| trade_date | TEXT | 交易日期 |
-| holding_days | INTEGER | 持有天数 |
-| return_rate | REAL | 收益率 |
-| close_price | REAL | 收盘价 |
-| future_price | REAL | 未来价格 |
-| created_at | TEXT | 创建时间 |
-
-#### 2.2.4 memory_records (内存记录表)
-
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| id | INTEGER | 主键，自增 |
-| memory_name | TEXT | 内存实例名称 |
-| situation | TEXT | 完整市场情境 |
-| recommendation | TEXT | 建议内容 |
-| actual_return | REAL | 实际收益率 |
-| symbol | TEXT | 股票代码 |
-| trade_date | TEXT | 交易日期 |
-| created_at | TEXT | 创建时间 |
-| updated_at | TEXT | 更新时间 |
-
-### 2.3 trading_analysis.db 表结构
-
-#### 2.3.1 analysis_reports (分析报告表)
-
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| id | INTEGER | 主键，自增 |
-| symbol | TEXT | 股票代码 |
-| trade_date | TEXT | 交易日期 |
-| created_at | TEXT | 创建时间 |
-| market_report | TEXT | 市场分析师报告 |
-| fundamentals_report | TEXT | 基本面分析师报告 |
-| candlestick_report | TEXT | 蜡烛图分析师报告 |
-| sentiment_report | TEXT | 情绪分析师报告 |
-| news_report | TEXT | 新闻分析师报告 |
-| investment_plan | TEXT | 投资计划 |
-| trader_investment_plan | TEXT | 交易员投资计划 |
-| final_trade_decision | TEXT | 最终交易决策 |
-| tool_calls_jsonl | TEXT | 工具调用原始数据 |
-| metadata | TEXT | 元数据 (JSON) |
-
-#### 2.3.2 tool_calls (工具调用表)
-
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| id | INTEGER | 主键，自增 |
-| report_id | INTEGER | 关联 analysis_reports.id |
-| tool_name | TEXT | 工具名称 |
-| input_params | TEXT | 输入参数 (JSON) |
-| output_result | TEXT | 输出结果 (JSON) |
-| timestamp | TEXT | 调用时间戳 |
-| duration_ms | INTEGER | 执行时长 (毫秒) |
+| research_tracker.db | 存储预测、回测和内存记录 | 项目根目录 |
+| trading_analysis.db | 存储分析报告和工具调用 | tradingagents/db/ |
 
 ## 3. 数据流图
 

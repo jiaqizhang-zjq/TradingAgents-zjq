@@ -44,13 +44,7 @@ cp .env.example .env
 python -m cli.main
 ```
 
-**命令行快速执行** - 使用默认配置（Opencode minimax-m2.5-free + longbridge）：
-```bash
-python main.py [股票代码] [日期]
-# 示例: python main.py LMND 2026-02-24
-```
-
-**高级执行** - 支持完整的配置选项：
+**命令行快速执行** - 支持完整的配置选项：
 ```bash
 python run_trading.py [股票代码] [日期] [选项]
 # 示例:

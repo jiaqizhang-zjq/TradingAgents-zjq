@@ -135,10 +135,60 @@ RESEARCHER_REGISTRY = {
         "factory": "create_peter_lynch_researcher",
         "default_win_rate": DEFAULT_NEUTRAL_WIN_RATE,
     },
+    "charlie_munger": {
+        "type": "charlie_munger_researcher",
+        "display_name": "Charlie Munger Researcher",
+        "speaker_label": "Munger",
+        "module": "tradingagents.agents.researchers.charlie_munger_researcher",
+        "factory": "create_charlie_munger_researcher",
+        "default_win_rate": DEFAULT_NEUTRAL_WIN_RATE,
+    },
+    "soros": {
+        "type": "soros_researcher",
+        "display_name": "Soros Researcher",
+        "speaker_label": "Soros",
+        "module": "tradingagents.agents.researchers.soros_researcher",
+        "factory": "create_soros_researcher",
+        "default_win_rate": DEFAULT_NEUTRAL_WIN_RATE,
+    },
+    "dalio": {
+        "type": "dalio_researcher",
+        "display_name": "Dalio Researcher",
+        "speaker_label": "Dalio",
+        "module": "tradingagents.agents.researchers.dalio_researcher",
+        "factory": "create_dalio_researcher",
+        "default_win_rate": DEFAULT_NEUTRAL_WIN_RATE,
+    },
+    "livermore": {
+        "type": "livermore_researcher",
+        "display_name": "Livermore Researcher",
+        "speaker_label": "Livermore",
+        "module": "tradingagents.agents.researchers.livermore_researcher",
+        "factory": "create_livermore_researcher",
+        "default_win_rate": DEFAULT_NEUTRAL_WIN_RATE,
+    },
 }
 
-# 默认选中的 researcher（向后兼容原始 bull/bear 双方辩论）
-DEFAULT_SELECTED_RESEARCHERS = ["bull", "bear"]
+# 默认选中的 researcher
+# 三方辩论：Bull（看多初阶）+ Bear（看空初阶）+ Buffett（价值锚定高级）
+#
+# 分析师层级体系：
+# - 初阶分析师（Junior）：bull, bear — 预设立场，快速多空筛选
+# - 高级分析师（Senior/Master）：buffett, cathie_wood, peter_lynch,
+#   charlie_munger, soros, dalio, livermore — 无预设立场，独立判断
+#
+# 设计依据（基于回测数据分析）：
+# 1. 双方辩论(bull+bear)导致 Research Manager 90% 给出 HOLD，错过 INTC +5.7%、IREN +7.3% 等机会
+# 2. Buffett 的价值锚定视角（护城河/安全边际/FCF）与 Bull/Bear 的技术面+情绪面互补性最强
+# 3. 三人辩论 2 轮 = 6 次发言 ≈ 25k tokens，在 LLM context 可控范围内
+# 4. 加更多大师会导致 context 膨胀（5人=42k tokens），Research Manager 注意力涣散反而更保守
+# 5. Cathie Wood / Peter Lynch 与 Bull 视角重叠度高，增加噪声 > 信号
+#
+# 推荐组合：
+# - 默认组合：["bull", "bear", "buffett"] — 经典多空+价值锚定
+# - 大师组合：["buffett", "charlie_munger", "soros"] — 价值+逆向+宏观
+# - 全面组合：["bull", "bear", "buffett", "soros", "dalio"] — 5人深度辩论（token 消耗较高）
+DEFAULT_SELECTED_RESEARCHERS = ["bull", "bear", "buffett"]
 
 # 向后兼容旧字段名
 RESEARCHER_TYPES = list(RESEARCHER_REGISTRY.keys())

@@ -24,6 +24,7 @@ SYSTEM_PROMPTS = {
         perspective_zh=BUFFETT_PERSPECTIVE_ZH,
         perspective_en=BUFFETT_PERSPECTIVE_EN,
         language="zh",
+        analyst_level="senior",
     ),
     "en": build_researcher_prompt(
         role_name_zh="巴菲特价值投资分析师",
@@ -31,6 +32,7 @@ SYSTEM_PROMPTS = {
         perspective_zh=BUFFETT_PERSPECTIVE_ZH,
         perspective_en=BUFFETT_PERSPECTIVE_EN,
         language="en",
+        analyst_level="senior",
     ),
 }
 

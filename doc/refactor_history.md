@@ -144,7 +144,7 @@
 **影响范围**: 全项目
 **行动**:
 - [x] 为所有公共函数添加类型注解
-- [x] 创建.*constants.py`:
+- [x] 创建 `constants.py`:
   - `STRONG_CONFIDENCE = 0.75`
   - `WEAK_CONFIDENCE = 0.55`
   - `NEUTRAL_CONFIDENCE = 0.65`
@@ -165,16 +165,16 @@
 **问题**: 一个类承担太多职责
 
 **行动**:
-- [x] 创建 tradingagents/dataflows/core/`:
+- [x] 创建 `tradingagents/dataflows/core/`:
   - `vendor_registry.py` - Vendor注册和管理
   - `data_fetcher.py` - 纯数据获取逻辑
   - `retry_policy.py` - 重试策略
   - `statistics_collector.py` - 统计收集
-- [x] 重构 UnifiedDataManager`:
+- [x] 重构 `UnifiedDataManager`:
   - 注入依赖：`fetcher`, `registry`, `retry_policy`
   - 只负责协调各组件
   - 减少到<200行
-- [x] 更新 interface.py` 中的初始化逻辑
+- [x] 更新 `interface.py` 中的初始化逻辑
 
 **预计时间**: 4小时
 **预期收益**: 提高可测试性，降低耦合度
@@ -202,7 +202,7 @@
           return self._services[name]()
   ```
 - [x] 重构各模块接受依赖注入
-- [x] 更新 TradingAgentsGraph` 初始化时注入依赖
+- [x] 更新 `TradingAgentsGraph` 初始化时注入依赖
 
 **预计时间**: 3小时
 
@@ -310,7 +310,7 @@ tests/
           env_file = ".env"
           env_nested_delimiter = "__"
   ```
-- [x] 替换 default_config.py`
+- [x] 替换 `default_config.py`
 - [x] 更新所有配置访问代码
 
 **预计时间**: 2.5小时
@@ -764,4 +764,3 @@ TODO.md                        [本文件]
 
 **状态**: 🎯 核心目标达成，超预期完成
 **最后更新**: 2026-02-27
-**完整报告**: 见 REFACTOR_REPORT.md

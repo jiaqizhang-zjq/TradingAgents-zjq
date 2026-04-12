@@ -8,12 +8,12 @@
 
 ### 1. research_tracker.db
 - **文件名**: `research_tracker.db`
-- **位置**: `/Users/jiaqi.zjq/workingspace/ai_trading/TradingAgents/`
+- **位置**: 项目根目录
 - **用途**: 存储研究员预测、回测结果和内存记录
 
 ### 2. trading_analysis.db
 - **文件名**: `trading_analysis.db`
-- **位置**: `/Users/jiaqi.zjq/workingspace/ai_trading/TradingAgents/tradingagents/db/`
+- **位置**: `tradingagents/db/`
 - **用途**: 存储完整的分析报告和工具调用数据
 
 ---

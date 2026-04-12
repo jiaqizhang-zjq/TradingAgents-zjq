@@ -27,6 +27,10 @@ from typing import Dict, List
 from .prompts.base_templates import (
     EXPERT_IDENTITY_ZH,
     EXPERT_IDENTITY_EN,
+    JUNIOR_ANALYST_IDENTITY_ZH,
+    JUNIOR_ANALYST_IDENTITY_EN,
+    SENIOR_MASTER_IDENTITY_ZH,
+    SENIOR_MASTER_IDENTITY_EN,
     RESEARCHER_BASE_REQUIREMENTS_ZH,
     RESEARCHER_BASE_REQUIREMENTS_EN,
     RESEARCHER_OUTPUT_FORMAT_ZH,
@@ -40,13 +44,23 @@ from .prompts.base_templates import (
 # 从子模块导入角色视角
 from .prompts.perspectives import (
     BULL_PERSPECTIVE_ZH,
+    BULL_PERSPECTIVE_EN,
     BEAR_PERSPECTIVE_ZH,
+    BEAR_PERSPECTIVE_EN,
     BUFFETT_PERSPECTIVE_ZH,
     BUFFETT_PERSPECTIVE_EN,
     CATHIE_WOOD_PERSPECTIVE_ZH,
     CATHIE_WOOD_PERSPECTIVE_EN,
     PETER_LYNCH_PERSPECTIVE_ZH,
     PETER_LYNCH_PERSPECTIVE_EN,
+    CHARLIE_MUNGER_PERSPECTIVE_ZH,
+    CHARLIE_MUNGER_PERSPECTIVE_EN,
+    SOROS_PERSPECTIVE_ZH,
+    SOROS_PERSPECTIVE_EN,
+    DALIO_PERSPECTIVE_ZH,
+    DALIO_PERSPECTIVE_EN,
+    LIVERMORE_PERSPECTIVE_ZH,
+    LIVERMORE_PERSPECTIVE_EN,
     AGGRESSIVE_PERSPECTIVE_ZH,
     CONSERVATIVE_PERSPECTIVE_ZH,
     NEUTRAL_PERSPECTIVE_ZH,
@@ -62,23 +76,39 @@ def build_researcher_prompt(
     role_name_en: str,
     perspective_zh: str,
     perspective_en: str = "",
-    language: str = "zh"
+    language: str = "zh",
+    analyst_level: str = "default",
 ) -> str:
     """
     构建研究员提示词
-    
+
     Args:
         role_name_zh: 中文角色名称（如"看涨分析师"）
         role_name_en: 英文角色名称（如"Bull Analyst"）
         perspective_zh: 中文角色特定视角
         perspective_en: 英文角色特定视角（可选）
         language: 语言（"zh"或"en"）
-    
+        analyst_level: 分析师级别
+            - "junior": 初阶分析师（Bull/Bear），使用 JUNIOR_ANALYST_IDENTITY
+            - "senior": 高级分析师（投资大师），使用 SENIOR_MASTER_IDENTITY
+            - "default": 通用模板，使用 EXPERT_IDENTITY（向后兼容）
+
     Returns:
         完整的提示词
     """
+    # 根据 analyst_level 选择身份模板
+    if analyst_level == "junior":
+        identity_zh = JUNIOR_ANALYST_IDENTITY_ZH.format(role_name=role_name_zh)
+        identity_en = JUNIOR_ANALYST_IDENTITY_EN.format(role_name=role_name_en)
+    elif analyst_level == "senior":
+        identity_zh = SENIOR_MASTER_IDENTITY_ZH
+        identity_en = SENIOR_MASTER_IDENTITY_EN
+    else:
+        identity_zh = EXPERT_IDENTITY_ZH.format(role_name=role_name_zh)
+        identity_en = EXPERT_IDENTITY_EN.format(role_name=role_name_en)
+
     if language == "zh":
-        return f"""{EXPERT_IDENTITY_ZH.format(role_name=role_name_zh)}
+        return f"""{identity_zh}
 
 {RESEARCHER_BASE_REQUIREMENTS_ZH}
 
@@ -87,7 +117,7 @@ def build_researcher_prompt(
 {RESEARCHER_OUTPUT_FORMAT_ZH}
 """
     else:
-        return f"""{EXPERT_IDENTITY_EN.format(role_name=role_name_en)}
+        return f"""{identity_en}
 
 {RESEARCHER_BASE_REQUIREMENTS_EN}
 
@@ -142,75 +172,43 @@ def build_risk_analyst_prompt(
 # =============================================================================
 
 # 标准研究员提示词 - 中文
+# Bull/Bear 使用初阶分析师身份（analyst_level="junior"）
 STANDARD_BULL_PROMPT_ZH = build_researcher_prompt(
     role_name_zh="看涨分析师",
     role_name_en="Bull Analyst",
     perspective_zh=BULL_PERSPECTIVE_ZH,
-    language="zh"
+    perspective_en=BULL_PERSPECTIVE_EN,
+    language="zh",
+    analyst_level="junior",
 )
 
 STANDARD_BEAR_PROMPT_ZH = build_researcher_prompt(
     role_name_zh="看跌分析师",
     role_name_en="Bear Analyst",
     perspective_zh=BEAR_PERSPECTIVE_ZH,
-    language="zh"
+    perspective_en=BEAR_PERSPECTIVE_EN,
+    language="zh",
+    analyst_level="junior",
 )
 
-# 标准研究员提示词 - 英文（完整版本）
-STANDARD_BULL_PROMPT_EN = """You are a Senior Bull Analyst with 20+ years of experience on Wall Street. Your reputation is built on accurate calls and rigorous analysis. You are advocating for investing in the stock.
+# 标准研究员提示词 - 英文（使用模板生成）
+STANDARD_BULL_PROMPT_EN = build_researcher_prompt(
+    role_name_zh="看涨分析师",
+    role_name_en="Bull Analyst",
+    perspective_zh=BULL_PERSPECTIVE_ZH,
+    perspective_en=BULL_PERSPECTIVE_EN,
+    language="en",
+    analyst_level="junior",
+)
 
-Your task is to build a strong, evidence-based case emphasizing growth potential, competitive advantages, and positive market indicators. Leverage the provided research and data to address concerns and counter bearish arguments effectively.
-
-Key points to focus on:
-- Growth Potential: Highlight the company's market opportunities, revenue projections, and scalability with specific numbers.
-- Competitive Advantages: Emphasize factors like unique products, strong branding, or dominant market positioning.
-- Positive Indicators: Use financial health, industry trends, and recent positive news as evidence.
-- Bear Counterpoints: Critically analyze the bear argument with specific data and sound reasoning, addressing concerns thoroughly.
-- Probability Assessment: Provide a detailed probability distribution of potential outcomes (bull case, base case, bear case).
-
-As a 20+ year veteran, you must provide:
-1. Specific price targets with reasoning
-2. Risk-adjusted position sizing recommendations
-3. Probability-weighted expected returns
-
-IMPORTANT: At the end of your response, you MUST include:
-PREDICTION: [BUY/SELL/HOLD] (Confidence: [0-100]%)
-PROBABILITY DISTRIBUTION:
-- Bull Case (up >20%): X%
-- Base Case (-10% to +20%): Y%
-- Bear Case (down >10%): Z%
-EXPECTED RETURN: X%
-RECOMMENDED POSITION SIZE: X% of portfolio
-"""
-
-STANDARD_BEAR_PROMPT_EN = """You are a Senior Bear Analyst with 20+ years of experience on Wall Street. Your reputation is built on accurate calls and rigorous risk assessment. You are making the case against investing in the stock.
-
-Your goal is to present a well-reasoned argument emphasizing risks, challenges, and negative indicators. Leverage the provided research and data to highlight potential downsides and counter bullish arguments effectively.
-
-Key points to focus on:
-
-- Risks and Challenges: Highlight factors like market saturation, financial instability, or macroeconomic threats with specific data.
-- Competitive Weaknesses: Emphasize vulnerabilities such as weaker market positioning, declining innovation, or threats from competitors.
-- Negative Indicators: Use evidence from financial data, market trends, or recent adverse news to support your position.
-- Bull Counterpoints: Critically analyze the bull argument with specific data and sound reasoning, exposing weaknesses or over-optimistic assumptions.
-- Probability Assessment: Provide a detailed probability distribution of potential outcomes (bull case, base case, bear case).
-
-As a 20+ year veteran, you must provide:
-1. Specific downside price targets with reasoning
-2. Risk-adjusted position sizing recommendations (including short position sizing if applicable)
-3. Probability-weighted expected returns
-4. Key risk factors that could trigger a sell-off
-
-IMPORTANT: At the end of your response, you MUST include:
-PREDICTION: [BUY/SELL/HOLD] (Confidence: [0-100]%)
-PROBABILITY DISTRIBUTION:
-- Bull Case (up >20%): X%
-- Base Case (-10% to +20%): Y%
-- Bear Case (down >10%): Z%
-EXPECTED RETURN: X%
-RECOMMENDED POSITION SIZE: X% of portfolio (or short position)
-KEY RISK FACTORS: List the top 3 risks
-"""
+STANDARD_BEAR_PROMPT_EN = build_researcher_prompt(
+    role_name_zh="看跌分析师",
+    role_name_en="Bear Analyst",
+    perspective_zh=BEAR_PERSPECTIVE_ZH,
+    perspective_en=BEAR_PERSPECTIVE_EN,
+    language="en",
+    analyst_level="junior",
+)
 
 # 标准风险分析师提示词 - 中文
 STANDARD_AGGRESSIVE_PROMPT_ZH = build_risk_analyst_prompt(

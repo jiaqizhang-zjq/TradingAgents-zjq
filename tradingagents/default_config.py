@@ -28,9 +28,12 @@ DEFAULT_CONFIG = {
     "max_risk_discuss_rounds": MAX_RISK_DISCUSS_ROUNDS,
     "max_recur_limit": MAX_RECUR_LIMIT,
     # Researcher selection - 选择参与辩论的研究员
-    # 可选值: "bull", "bear", "buffett", "cathie_wood", "peter_lynch"
-    # 默认: ["bull", "bear"]（经典多空辩论）
-    # 示例: ["bull", "bear", "buffett"] （加入巴菲特视角的三方辩论）
+    # 初阶（Junior）: "bull", "bear" — 预设立场，快速多空筛选
+    # 高级（Senior）: "buffett", "cathie_wood", "peter_lynch",
+    #                  "charlie_munger", "soros", "dalio", "livermore"
+    # 默认: ["bull", "bear", "buffett"]（初阶多空 + 价值锚定）
+    # 示例: ["buffett", "charlie_munger", "soros"]（大师组合：价值+逆向+宏观）
+    # 示例: ["bull", "bear", "buffett", "soros", "dalio"]（5人深度辩论，token消耗较高）
     "selected_researchers": DEFAULT_SELECTED_RESEARCHERS,
     # Language configuration - 输出语言设置
     # Options: "zh" (中文), "en" (English), "auto" (自动检测)

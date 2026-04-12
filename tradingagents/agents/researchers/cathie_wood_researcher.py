@@ -24,6 +24,7 @@ SYSTEM_PROMPTS = {
         perspective_zh=CATHIE_WOOD_PERSPECTIVE_ZH,
         perspective_en=CATHIE_WOOD_PERSPECTIVE_EN,
         language="zh",
+        analyst_level="senior",
     ),
     "en": build_researcher_prompt(
         role_name_zh="木头姐创新颠覆分析师",
@@ -31,6 +32,7 @@ SYSTEM_PROMPTS = {
         perspective_zh=CATHIE_WOOD_PERSPECTIVE_ZH,
         perspective_en=CATHIE_WOOD_PERSPECTIVE_EN,
         language="en",
+        analyst_level="senior",
     ),
 }
 
