@@ -17,8 +17,11 @@ import json
 from dotenv import load_dotenv
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DB_PATH = os.path.join(PROJECT_ROOT, "tradingagents", "db", "research_tracker.db")
 sys.path.insert(0, PROJECT_ROOT)
+
+from tradingagents.constants import DEFAULT_DB_PATH  # noqa: E402
+
+DB_PATH = os.path.join(PROJECT_ROOT, DEFAULT_DB_PATH)
 
 # 加载环境变量
 load_dotenv()

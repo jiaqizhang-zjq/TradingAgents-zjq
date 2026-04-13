@@ -241,6 +241,36 @@ class UnifiedDataManager:
         
         return False
     
+    def _log_tool_call(
+        self,
+        method_name: str,
+        vendor: str,
+        args: tuple,
+        kwargs: dict,
+        result: str,
+    ) -> None:
+        """记录工具调用信息到数据库（统一日志逻辑）"""
+        try:
+            from tradingagents.dataflows.database import get_db
+            db = get_db()
+            symbol = args[0] if args else "unknown"
+            trade_date = args[2] if len(args) >= 3 else datetime.now().strftime("%Y-%m-%d")
+            input_params = {
+                "args": args,
+                "kwargs": kwargs
+            }
+            db.save_tool_call(
+                symbol=symbol,
+                trade_date=trade_date,
+                tool_name=method_name,
+                vendor_used=vendor,
+                input_params=input_params,
+                result=str(result)
+            )
+            logger.debug("%s工具调用已记录到数据库", "缓存" if vendor == "cache" else "")
+        except Exception as e:
+            logger.warning("记录%s工具调用失败: %s", "缓存" if vendor == "cache" else "", e)
+    
     def fetch(
         self,
         method_name: str,
@@ -306,27 +336,7 @@ class UnifiedDataManager:
                 logger.debug("... (截断，总长度: %d)", len(str(cached_result)))
             
             # 记录工具调用信息（缓存数据）
-            try:
-                from tradingagents.dataflows.database import get_db
-                db = get_db()
-                # 提取股票代码和日期信息
-                symbol = args[0] if args else "unknown"
-                trade_date = args[2] if len(args) >= 3 else datetime.now().strftime("%Y-%m-%d")
-                input_params = {
-                    "args": args,
-                    "kwargs": kwargs
-                }
-                db.save_tool_call(
-                    symbol=symbol,
-                    trade_date=trade_date,
-                    tool_name=method_name,
-                    vendor_used="cache",
-                    input_params=input_params,
-                    result=str(cached_result)
-                )
-                logger.debug("缓存工具调用已记录到数据库")
-            except Exception as e:
-                logger.warning("记录缓存工具调用失败: %s", e)
+            self._log_tool_call(method_name, "cache", args, kwargs, cached_result)
             
             return cached_result
         

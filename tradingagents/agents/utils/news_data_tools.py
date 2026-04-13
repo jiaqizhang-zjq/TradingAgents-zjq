@@ -1,7 +1,7 @@
 from langchain_core.tools import tool
 from typing import Annotated, List, Optional
 from tradingagents.dataflows.interface import get_data_manager
-from tradingagents.agents.utils.logging_utils import log_tool_call
+from tradingagents.agents.utils.logging_utils import log_tool_call, get_vendor_info
 from tradingagents.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,15 +32,8 @@ def get_news(
     logger.debug("🔧 Calling get_news for %s (%s to %s)", ticker, start_date, end_date)
     
     manager = get_data_manager()
-    
     result = manager.fetch("get_news", ticker, start_date, end_date)
-    
-    vendor_used = "unknown"
-    if hasattr(manager, 'get_stats'):
-        stats = manager.get_stats()
-        vendor_used = stats.get('last_vendor_used', 'unknown')
-    
-    log_tool_call("get_news", vendor_used, result)
+    log_tool_call("get_news", get_vendor_info(manager), result)
     
     return result
 
@@ -64,15 +57,8 @@ def get_global_news(
     logger.debug("🔧 Calling get_global_news for date %s, look_back_days=%d", curr_date, look_back_days)
     
     manager = get_data_manager()
-    
     result = manager.fetch("get_global_news", curr_date, look_back_days, limit)
-    
-    vendor_used = "unknown"
-    if hasattr(manager, 'get_stats'):
-        stats = manager.get_stats()
-        vendor_used = stats.get('last_vendor_used', 'unknown')
-    
-    log_tool_call("get_global_news", vendor_used, result)
+    log_tool_call("get_global_news", get_vendor_info(manager), result)
     
     return result
 
@@ -92,15 +78,8 @@ def get_insider_transactions(
     logger.debug("🔧 Calling get_insider_transactions for %s", ticker)
     
     manager = get_data_manager()
-    
     result = manager.fetch("get_insider_transactions", ticker)
-    
-    vendor_used = "unknown"
-    if hasattr(manager, 'get_stats'):
-        stats = manager.get_stats()
-        vendor_used = stats.get('last_vendor_used', 'unknown')
-    
-    log_tool_call("get_insider_transactions", vendor_used, result)
+    log_tool_call("get_insider_transactions", get_vendor_info(manager), result)
     
     return result
 

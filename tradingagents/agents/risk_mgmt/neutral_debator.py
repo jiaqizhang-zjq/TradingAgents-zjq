@@ -1,33 +1,11 @@
-import re
-from tradingagents.dataflows.config import get_config
-from tradingagents.utils.logger import get_logger
+"""中立型风险辩论者 — 基于 BaseRiskDebator 重构。"""
 
-logger = get_logger(__name__)
+from tradingagents.agents.risk_mgmt.base_risk_debator import (
+    RiskDebatorConfig,
+    create_risk_debator,
+)
 
-
-def create_neutral_debator(llm):
-    def neutral_node(state) -> dict:
-        risk_debate_state = state["risk_debate_state"]
-        history = risk_debate_state.get("history", "")
-        neutral_history = risk_debate_state.get("neutral_history", "")
-
-        current_aggressive_response = risk_debate_state.get("current_aggressive_response", "")
-        current_conservative_response = risk_debate_state.get("current_conservative_response", "")
-
-        market_research_report = state["market_report"]
-        sentiment_report = state["sentiment_report"]
-        news_report = state["news_report"]
-        fundamentals_report = state["fundamentals_report"]
-        candlestick_report = state.get("candlestick_report", "")
-
-        trader_decision = state["trader_investment_plan"]
-
-        # 获取语言配置，默认为英文
-        config = get_config()
-        language = config.get("output_language", "zh")
-
-        if language == "zh":
-            prompt = f"""【重要：你的回复必须使用中文，所有内容都应该是中文】
+_ZH_PROMPT = """【重要：你的回复必须使用中文，所有内容都应该是中文】
 
 作为中立型风险分析师，你的角色是提供平衡的视角，权衡交易员决策或计划的潜在收益和风险。你优先考虑全面的方法，评估上行和下行空间，同时考虑更广泛的市场趋势、潜在的经济变化和多元化策略。以下是交易员的决策：
 
@@ -43,8 +21,8 @@ K线分析报告：{candlestick_report}
 这是当前的对话历史：{history} 以下是激进型分析师的上一次回应：{current_aggressive_response} 以下是保守型分析师的上一次回应：{current_conservative_response}。如果其他观点没有回应，不要编造，只需陈述你的观点。
 
 通过批判性地分析双方来积极参与，解决激进型和保守型论点中的弱点，倡导更平衡的方法。挑战他们的每一个观点，以说明为什么适度的风险策略可能提供两全其美，在防范极端波动的同时提供增长潜力。专注于辩论而不是简单地呈现数据，旨在表明平衡的观点可以带来最可靠的结果。以对话方式输出，就像你在说话一样，不要使用任何特殊格式。"""
-        else:
-            prompt = f"""As the Neutral Risk Analyst, your role is to provide a balanced perspective, weighing both the potential benefits and risks of the trader's decision or plan. You prioritize a well-rounded approach, evaluating the upsides and downsides while factoring in broader market trends, potential economic shifts, and diversification strategies.Here is the trader's decision:
+
+_EN_PROMPT = """As the Neutral Risk Analyst, your role is to provide a balanced perspective, weighing both the potential benefits and risks of the trader's decision or plan. You prioritize a well-rounded approach, evaluating the upsides and downsides while factoring in broader market trends, potential economic shifts, and diversification strategies.Here is the trader's decision:
 
 {trader_decision}
 
@@ -59,53 +37,19 @@ Here is the current conversation history: {history} Here is the last response fr
 
 Engage actively by analyzing both sides critically, addressing weaknesses in the aggressive and conservative arguments to advocate for a more balanced approach. Challenge each of their points to illustrate why a moderate risk strategy might offer the best of both worlds, providing growth potential while safeguarding against extreme volatility. Focus on debating rather than simply presenting data, aiming to show that a balanced view can lead to the most reliable outcomes. Output conversationally as if you are speaking without any special formatting."""
 
-        # 调试信息：打印完整prompt（由debug开关控制）
-        debug_config = config.get("debug", {})
-        if debug_config.get("enabled", False) and debug_config.get("show_prompts", False):
-            logger.debug("=" * 80)
-            logger.debug("DEBUG: Neutral Risk Debator Prompt Before LLM Call:")
-            logger.debug("=" * 80)
-            logger.debug("Language: %s", language)
-            logger.debug("Prompt: %s", prompt[:800] + "..." if len(prompt) > 800 else prompt)
-            logger.debug("=" * 80)
-        
-        response = llm.invoke(prompt)
-        response_content = response.content
+_CONFIG = RiskDebatorConfig(
+    role_name="Neutral",
+    state_key_prefix="neutral",
+    own_history_key="neutral_history",
+    opponent_response_keys=("current_aggressive_response", "current_conservative_response"),
+    default_confidence=0.75,
+    round_label_zh="中性风险观点",
+    debug_label="Neutral Risk Debator",
+    prompt_zh=_ZH_PROMPT,
+    prompt_en=_EN_PROMPT,
+)
 
-        # 提取预测结果
-        prediction = "HOLD"
-        confidence = 0.75
-        if language == "zh":
-            pred_match = re.search(r'预测[:：]\s*(买入|卖出|持有|BUY|SELL|HOLD).*?置信度[:：]\s*(\d+)%?', response_content, re.IGNORECASE)
-        else:
-            pred_match = re.search(r'PREDICTION:\s*(BUY|SELL|HOLD).*?Confidence:\s*(\d+)%?', response_content, re.IGNORECASE)
-        
-        if pred_match:
-            prediction = pred_match.group(1).upper()
-            pred_map = {"买入": "BUY", "卖出": "SELL", "持有": "HOLD"}
-            prediction = pred_map.get(prediction, prediction)
-            confidence = int(pred_match.group(2)) / 100.0
 
-        # 添加轮次标记
-        current_round = risk_debate_state["count"] + 1
-        argument = f"## 第 {current_round} 轮 - 中性风险观点\nNeutral Analyst: {response_content}"
-
-        new_risk_debate_state = {
-            "history": history + "\n" + argument,
-            "aggressive_history": risk_debate_state.get("aggressive_history", ""),
-            "conservative_history": risk_debate_state.get("conservative_history", ""),
-            "neutral_history": neutral_history + "\n" + argument,
-            "latest_speaker": "Neutral",
-            "current_aggressive_response": risk_debate_state.get(
-                "current_aggressive_response", ""
-            ),
-            "current_conservative_response": risk_debate_state.get("current_conservative_response", ""),
-            "current_neutral_response": argument,
-            "count": current_round,
-            "neutral_prediction": prediction,
-            "neutral_confidence": confidence,
-        }
-
-        return {"risk_debate_state": new_risk_debate_state}
-
-    return neutral_node
+def create_neutral_debator(llm):
+    """创建中立型风险辩论者节点函数。"""
+    return create_risk_debator(llm, _CONFIG)

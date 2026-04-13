@@ -1,4 +1,5 @@
-import re
+from tradingagents.agents.utils.logging_utils import log_debug_prompt
+from tradingagents.agents.utils.prediction_utils import extract_prediction
 from tradingagents.dataflows.config import get_config
 from tradingagents.utils.logger import get_logger
 
@@ -77,32 +78,18 @@ Deliverables:
 
 Focus on actionable insights and continuous improvement. Build on past lessons, critically evaluate all perspectives, and ensure each decision advances better outcomes."""
 
-        # 调试信息：打印完整prompt（由debug开关控制）
-        debug_config = config.get("debug", {})
-        if debug_config.get("enabled", False) and debug_config.get("show_prompts", False):
-            logger.debug("=" * 80)
-            logger.debug("DEBUG: Risk Manager Prompt Before LLM Call:")
-            logger.debug("=" * 80)
-            logger.debug("Language: %s", language)
-            logger.debug("Prompt: %s", prompt[:1000] + "..." if len(prompt) > 1000 else prompt)
-            logger.debug("=" * 80)
+        log_debug_prompt(config, "Risk Manager", language, logger, Prompt=prompt)
         
         response = llm.invoke(prompt)
         response_content = response.content
 
         # 提取预测结果
-        prediction = "HOLD"
-        confidence = 0.8
-        if language == "zh":
-            pred_match = re.search(r'预测[:：]\s*(买入|卖出|持有|BUY|SELL|HOLD).*?置信度[:：]\s*(\d+)%?', response_content, re.IGNORECASE)
-        else:
-            pred_match = re.search(r'PREDICTION:\s*(BUY|SELL|HOLD).*?Confidence:\s*(\d+)%?', response_content, re.IGNORECASE)
-        
-        if pred_match:
-            prediction = pred_match.group(1).upper()
-            pred_map = {"买入": "BUY", "卖出": "SELL", "持有": "HOLD"}
-            prediction = pred_map.get(prediction, prediction)
-            confidence = int(pred_match.group(2)) / 100.0
+        prediction, confidence = extract_prediction(
+            response_content, language,
+            zh_pattern=r'预测[:：]\s*(买入|卖出|持有|BUY|SELL|HOLD).*?置信度[:：]\s*(\d+)%?',
+            en_pattern=r'PREDICTION:\s*(BUY|SELL|HOLD).*?Confidence:\s*(\d+)%?',
+            default_confidence=0.8,
+        )
 
         new_risk_debate_state = {
             "judge_decision": response_content,

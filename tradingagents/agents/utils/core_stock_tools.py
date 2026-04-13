@@ -1,7 +1,7 @@
 from langchain_core.tools import tool
 from typing import Annotated
 from tradingagents.dataflows.interface import get_data_manager
-from tradingagents.agents.utils.logging_utils import log_tool_call
+from tradingagents.agents.utils.logging_utils import log_tool_call, get_vendor_info
 from tradingagents.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -26,14 +26,7 @@ def get_stock_data(
     logger.debug("🔧 Calling get_stock_data for %s (%s to %s)", symbol, start_date, end_date)
     
     manager = get_data_manager()
-    
     result = manager.fetch("get_stock_data", symbol, start_date, end_date)
-    
-    vendor_used = "unknown"
-    if hasattr(manager, 'get_stats'):
-        stats = manager.get_stats()
-        vendor_used = stats.get('last_vendor_used', 'unknown')
-    
-    log_tool_call("get_stock_data", vendor_used, result)
+    log_tool_call("get_stock_data", get_vendor_info(manager), result)
     
     return result

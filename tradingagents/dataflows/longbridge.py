@@ -194,13 +194,13 @@ class LongbridgeAPI:
         df["cci_20"] = (tp - sma_tp) / (0.015 * mad)
         
         # CMO (Chande Momentum Oscillator)
-        def calculate_cmo(prices, period=14):
+        def calculate_cmo(prices, period=CMO_PERIOD):
             deltas = prices.diff()
             gains = deltas.where(deltas > 0, 0).rolling(window=period).sum()
             losses = -deltas.where(deltas < 0, 0).rolling(window=period).sum()
             return 100 * (gains - losses) / (gains + losses)
         
-        df["cmo_14"] = calculate_cmo(df["close"], 14)
+        df[f"cmo_{CMO_PERIOD}"] = calculate_cmo(df["close"], CMO_PERIOD)
         
         # MFI (Money Flow Index)
         df["mfi_14"] = self._calculate_mfi(df)

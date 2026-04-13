@@ -94,38 +94,61 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
         )
         memory.add_situations([(situation, result, actual_return)])
 
+    def _reflect_role(
+        self,
+        current_state,
+        returns_losses,
+        memory,
+        role_key: str,
+        state_path: str,
+        label: str,
+    ):
+        """通用的角色反思方法。
+
+        Args:
+            current_state: 当前状态
+            returns_losses: 收益/亏损数据
+            memory: 角色对应的记忆
+            role_key: 在 returns_losses 中的 key（如 "trader"、"invest_judge"）
+            state_path: 状态路径，用 '.' 分隔（如 "trader_investment_plan" 或 "investment_debate_state.judge_decision"）
+            label: 用于日志的标签名称（如 "TRADER"、"INVEST JUDGE"）
+        """
+        situation = self._extract_current_situation(current_state)
+
+        # 按路径获取决策内容
+        parts = state_path.split(".")
+        decision = current_state
+        for part in parts:
+            decision = decision[part]
+
+        actual_return = returns_losses.get(role_key, 0.0) if isinstance(returns_losses, dict) else 0.0
+
+        result = self._reflect_on_component(label, decision, situation, returns_losses)
+        memory.add_situations([(situation, result, actual_return)])
+
     def reflect_trader(self, current_state, returns_losses, trader_memory):
         """Reflect on trader's decision and update memory."""
-        situation = self._extract_current_situation(current_state)
-        trader_decision = current_state["trader_investment_plan"]
-        
-        actual_return = returns_losses.get("trader", 0.0) if isinstance(returns_losses, dict) else 0.0
-
-        result = self._reflect_on_component(
-            "TRADER", trader_decision, situation, returns_losses
+        self._reflect_role(
+            current_state, returns_losses, trader_memory,
+            role_key="trader",
+            state_path="trader_investment_plan",
+            label="TRADER",
         )
-        trader_memory.add_situations([(situation, result, actual_return)])
 
     def reflect_invest_judge(self, current_state, returns_losses, invest_judge_memory):
         """Reflect on investment judge's decision and update memory."""
-        situation = self._extract_current_situation(current_state)
-        judge_decision = current_state["investment_debate_state"]["judge_decision"]
-        
-        actual_return = returns_losses.get("invest_judge", 0.0) if isinstance(returns_losses, dict) else 0.0
-
-        result = self._reflect_on_component(
-            "INVEST JUDGE", judge_decision, situation, returns_losses
+        self._reflect_role(
+            current_state, returns_losses, invest_judge_memory,
+            role_key="invest_judge",
+            state_path="investment_debate_state.judge_decision",
+            label="INVEST JUDGE",
         )
-        invest_judge_memory.add_situations([(situation, result, actual_return)])
 
     def reflect_risk_manager(self, current_state, returns_losses, risk_manager_memory):
         """Reflect on risk manager's decision and update memory."""
-        situation = self._extract_current_situation(current_state)
-        judge_decision = current_state["risk_debate_state"]["judge_decision"]
-        
-        actual_return = returns_losses.get("risk_manager", 0.0) if isinstance(returns_losses, dict) else 0.0
-
-        result = self._reflect_on_component(
-            "RISK JUDGE", judge_decision, situation, returns_losses
+        self._reflect_role(
+            current_state, returns_losses, risk_manager_memory,
+            role_key="risk_manager",
+            state_path="risk_debate_state.judge_decision",
+            label="RISK JUDGE",
         )
-        risk_manager_memory.add_situations([(situation, result, actual_return)])

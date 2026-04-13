@@ -1,7 +1,7 @@
 from langchain_core.tools import tool
 from typing import Annotated
 from tradingagents.dataflows.interface import get_data_manager
-from tradingagents.agents.utils.logging_utils import log_tool_call
+from tradingagents.agents.utils.logging_utils import log_tool_call, get_vendor_info
 from tradingagents.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -24,15 +24,8 @@ def get_fundamentals(
     logger.debug("🔧 Calling get_fundamentals for %s, date=%s", ticker, curr_date)
     
     manager = get_data_manager()
-    
     result = manager.fetch("get_fundamentals", ticker, curr_date)
-    
-    vendor_used = "unknown"
-    if hasattr(manager, 'get_stats'):
-        stats = manager.get_stats()
-        vendor_used = stats.get('last_vendor_used', 'unknown')
-    
-    log_tool_call("get_fundamentals", vendor_used, result)
+    log_tool_call("get_fundamentals", get_vendor_info(manager), result)
     
     return result
 
@@ -56,15 +49,8 @@ def get_balance_sheet(
     logger.debug("🔧 Calling get_balance_sheet for %s, freq=%s", ticker, freq)
     
     manager = get_data_manager()
-    
     result = manager.fetch("get_balance_sheet", ticker, freq, curr_date)
-    
-    vendor_used = "unknown"
-    if hasattr(manager, 'get_stats'):
-        stats = manager.get_stats()
-        vendor_used = stats.get('last_vendor_used', 'unknown')
-    
-    log_tool_call("get_balance_sheet", vendor_used, result)
+    log_tool_call("get_balance_sheet", get_vendor_info(manager), result)
     
     return result
 
@@ -88,15 +74,8 @@ def get_cashflow(
     logger.debug("🔧 Calling get_cashflow for %s, freq=%s", ticker, freq)
     
     manager = get_data_manager()
-    
     result = manager.fetch("get_cashflow", ticker, freq, curr_date)
-    
-    vendor_used = "unknown"
-    if hasattr(manager, 'get_stats'):
-        stats = manager.get_stats()
-        vendor_used = stats.get('last_vendor_used', 'unknown')
-    
-    log_tool_call("get_cashflow", vendor_used, result)
+    log_tool_call("get_cashflow", get_vendor_info(manager), result)
     
     return result
 
@@ -120,14 +99,7 @@ def get_income_statement(
     logger.debug("🔧 Calling get_income_statement for %s, freq=%s", ticker, freq)
     
     manager = get_data_manager()
-    
     result = manager.fetch("get_income_statement", ticker, freq, curr_date)
-    
-    vendor_used = "unknown"
-    if hasattr(manager, 'get_stats'):
-        stats = manager.get_stats()
-        vendor_used = stats.get('last_vendor_used', 'unknown')
-    
-    log_tool_call("get_income_statement", vendor_used, result)
+    log_tool_call("get_income_statement", get_vendor_info(manager), result)
     
     return result

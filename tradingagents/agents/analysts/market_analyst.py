@@ -1,6 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from datetime import datetime, timedelta
 from tradingagents.agents.utils.agent_utils import get_stock_data, get_all_indicators, get_chart_patterns
+from tradingagents.agents.utils.logging_utils import log_debug_prompt
 from tradingagents.dataflows.config import get_config
 from tradingagents.utils.logger import get_logger
 
@@ -216,16 +217,8 @@ def create_market_analyst(llm):
 
         chain = prompt | llm
         
-        # 调试信息：打印完整prompt（由debug开关控制）
-        debug_config = config.get("debug", {})
-        if debug_config.get("enabled", False) and debug_config.get("show_prompts", False):
-            logger.debug("=" * 80)
-            logger.debug("DEBUG: Market Analyst Prompt Before LLM Call:")
-            logger.debug("=" * 80)
-            logger.debug("Language: %s", language)
-            logger.debug("System Message: %s", system_message[:500] + "..." if len(system_message) > 500 else system_message)
-            logger.debug("Assistant Prompt: %s", assistant_prompt[:500] + "..." if len(assistant_prompt) > 500 else assistant_prompt)
-            logger.debug("=" * 80)
+        log_debug_prompt(config, "Market Analyst", language, logger,
+                         **{"System Message": system_message, "Assistant Prompt": assistant_prompt})
         
         result = chain.invoke(state["messages"])
         report = result.content

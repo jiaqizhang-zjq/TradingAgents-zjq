@@ -95,17 +95,7 @@ def _local_get_indicators(symbol, indicator, curr_date, look_back_days, *args, *
     if df is None:
         raise DataFetchError("Failed to parse stock data")
     
-    df.reset_index(inplace=True)
-    
-    # 准备干净的 DataFrame（避免不必要的复制）
-    df_clean = df.rename(columns={
-        'timestamp': 'timestamp',
-        'Open': 'open',
-        'High': 'high',
-        'Low': 'low',
-        'Close': 'close',
-        'Volume': 'volume'
-    })[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+    df_clean = _prepare_clean_dataframe(df)
     
     # 使用惰性计算器 - 只计算需要的指标
     lazy_calc = get_lazy_calculator(df_clean)
@@ -142,7 +132,6 @@ def _prepare_clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     
     # 优化：避免创建新 DataFrame，使用 rename
     df_clean = df.rename(columns={
-        'timestamp': 'timestamp',
         'Open': 'open',
         'High': 'high',
         'Low': 'low',
@@ -170,7 +159,7 @@ def _build_grouped_results(df_with_indicators: pd.DataFrame, look_back_days: int
     return _core_build_grouped_results(df_with_indicators, look_back_days)
 
 
-def _local_get_all_indicators(symbol, curr_date, look_back_days, stock_data='', *args, **kwargs):
+def _local_get_all_indicators(symbol: str, curr_date: str, look_back_days: int, stock_data: str = '', *args, **kwargs) -> str:
     """本地计算所有技术指标，一次性返回所有分组（使用惰性计算优化）"""
     from .lazy_indicators import get_lazy_calculator
     import traceback
@@ -314,17 +303,7 @@ def _local_get_chart_patterns(symbol, start_date, end_date, lookback=60, *args, 
         logger.debug("_local_get_chart_patterns: df parsed, shape=%s", df.shape)
         logger.debug("_local_get_chart_patterns: df columns=%s", list(df.columns))
         
-        df.reset_index(inplace=True)
-        
-        # 优化：直接 rename 而不是创建新 DataFrame
-        df_clean = df.rename(columns={
-            'timestamp': 'timestamp',
-            'Open': 'open',
-            'High': 'high',
-            'Low': 'low',
-            'Close': 'close',
-            'Volume': 'volume'
-        })[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+        df_clean = _prepare_clean_dataframe(df)
         
         logger.debug("_local_get_chart_patterns: calling identify_all_patterns...")
         patterns = ChartPatterns.identify_all_patterns(df_clean, lookback)

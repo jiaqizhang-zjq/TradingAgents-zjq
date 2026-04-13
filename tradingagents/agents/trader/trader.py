@@ -1,5 +1,6 @@
 import functools
-import re
+from tradingagents.agents.utils.logging_utils import log_debug_prompt
+from tradingagents.agents.utils.prediction_utils import extract_prediction
 from tradingagents.dataflows.config import get_config
 from tradingagents.utils.logger import get_logger
 
@@ -16,9 +17,9 @@ def create_trader(llm, memory):
         fundamentals_report = state["fundamentals_report"]
         candlestick_report = state.get("candlestick_report", "")
 
-        # 获取语言配置，默认为英文
+        # 获取语言配置
         config = get_config()
-        language = config.get("output_language", "en")
+        language = config.get("output_language", "zh")
 
         curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}\n\n{candlestick_report}"
         past_memories = memory.get_memories(curr_situation, n_matches=2)
@@ -91,33 +92,19 @@ Do not forget to utilize lessons from past decisions to learn from your mistakes
             context,
         ]
         
-        # 调试信息：打印完整prompt（由debug开关控制）
-        debug_config = config.get("debug", {})
-        if debug_config.get("enabled", False) and debug_config.get("show_prompts", False):
-            logger.debug("=" * 80)
-            logger.debug("DEBUG: Trader Prompt Before LLM Call:")
-            logger.debug("=" * 80)
-            logger.debug("Language: %s", language)
-            logger.debug("System Content: %s", system_content[:500] + "..." if len(system_content) > 500 else system_content)
-            logger.debug("User Content: %s", context['content'][:300] + "..." if len(context['content']) > 300 else context['content'])
-            logger.debug("=" * 80)
+        log_debug_prompt(config, "Trader", language, logger,
+                         **{"System Content": system_content, "User Content": context['content']})
 
         result = llm.invoke(messages)
         response_content = result.content
 
         # 提取预测结果
-        prediction = "HOLD"
-        confidence = 0.9
-        if language == "zh":
-            pred_match = re.search(r'预测[:：]\s*(买入|卖出|持有|BUY|SELL|HOLD).*?置信度[:：]\s*(\d+)%?', response_content, re.IGNORECASE)
-        else:
-            pred_match = re.search(r'PREDICTION:\s*(BUY|SELL|HOLD).*?Confidence:\s*(\d+)%?', response_content, re.IGNORECASE)
-        
-        if pred_match:
-            prediction = pred_match.group(1).upper()
-            pred_map = {"买入": "BUY", "卖出": "SELL", "持有": "HOLD"}
-            prediction = pred_map.get(prediction, prediction)
-            confidence = int(pred_match.group(2)) / 100.0
+        prediction, confidence = extract_prediction(
+            response_content, language,
+            zh_pattern=r'预测[:：]\s*(买入|卖出|持有|BUY|SELL|HOLD).*?置信度[:：]\s*(\d+)%?',
+            en_pattern=r'PREDICTION:\s*(BUY|SELL|HOLD).*?Confidence:\s*(\d+)%?',
+            default_confidence=0.9,
+        )
 
         return {
             "messages": [result],

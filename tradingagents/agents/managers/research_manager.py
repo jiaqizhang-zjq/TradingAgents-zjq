@@ -1,5 +1,6 @@
 import re
 
+from tradingagents.agents.utils.logging_utils import log_debug_prompt
 from tradingagents.dataflows.research_tracker import get_research_tracker
 from tradingagents.dataflows.config import get_config
 from tradingagents.utils.logger import get_logger
@@ -108,15 +109,7 @@ Here are your past reflections on mistakes:
 Here is the debate:
 Debate History:
 {history}"""
-        # 调试信息：打印完整prompt（由debug开关控制）
-        debug_config = config.get("debug", {})
-        if debug_config.get("enabled", False) and debug_config.get("show_prompts", False):
-            logger.debug("=" * 80)
-            logger.debug("DEBUG: Research Manager Prompt Before LLM Call:")
-            logger.debug("=" * 80)
-            logger.debug("Language: %s", language)
-            logger.debug("Prompt: %s", prompt[:1000] + "..." if len(prompt) > 1000 else prompt)
-            logger.debug("=" * 80)
+        log_debug_prompt(config, "Research Manager", language, logger, Prompt=prompt)
         
         response = llm.invoke(prompt)
         response_content = response.content

@@ -1,33 +1,11 @@
-import re
-from tradingagents.dataflows.config import get_config
-from tradingagents.utils.logger import get_logger
+"""激进型风险辩论者 — 基于 BaseRiskDebator 重构。"""
 
-logger = get_logger(__name__)
+from tradingagents.agents.risk_mgmt.base_risk_debator import (
+    RiskDebatorConfig,
+    create_risk_debator,
+)
 
-
-def create_aggressive_debator(llm):
-    def aggressive_node(state) -> dict:
-        risk_debate_state = state["risk_debate_state"]
-        history = risk_debate_state.get("history", "")
-        aggressive_history = risk_debate_state.get("aggressive_history", "")
-
-        current_conservative_response = risk_debate_state.get("current_conservative_response", "")
-        current_neutral_response = risk_debate_state.get("current_neutral_response", "")
-
-        market_research_report = state["market_report"]
-        sentiment_report = state["sentiment_report"]
-        news_report = state["news_report"]
-        fundamentals_report = state["fundamentals_report"]
-        candlestick_report = state.get("candlestick_report", "")
-
-        trader_decision = state["trader_investment_plan"]
-
-        # 获取语言配置，默认为英文
-        config = get_config()
-        language = config.get("output_language", "zh")
-
-        if language == "zh":
-            prompt = f"""【重要：你的回复必须使用中文，所有内容都应该是中文】
+_ZH_PROMPT = """【重要：你的回复必须使用中文，所有内容都应该是中文】
 
 你是一位拥有20多年经验的资深激进型风险分析师，曾在顶级对冲基金担任首席风险官，管理过数十亿美元的高风险投资组合。你的声誉建立在敢于在关键时刻承担计算过的风险，并因此获得超额回报。
 
@@ -63,8 +41,8 @@ K线分析报告：{candlestick_report}
 中立型分析师观点：{current_neutral_response}
 
 以对话方式输出，展现20年资深专家的专业水准。"""
-        else:
-            prompt = f"""As the Aggressive Risk Analyst, your role is to actively champion high-reward, high-risk opportunities, emphasizing bold strategies and competitive advantages. When evaluating the trader's decision or plan, focus intently on the potential upside, growth potential, and innovative benefits—even when these come with elevated risk. Use the provided market data and sentiment analysis to strengthen your arguments and challenge the opposing views. Specifically, respond directly to each point made by the conservative and neutral analysts, countering with data-driven rebuttals and persuasive reasoning. Highlight where their caution might miss critical opportunities or where their assumptions may be overly conservative. Here is the trader's decision:
+
+_EN_PROMPT = """As the Aggressive Risk Analyst, your role is to actively champion high-reward, high-risk opportunities, emphasizing bold strategies and competitive advantages. When evaluating the trader's decision or plan, focus intently on the potential upside, growth potential, and innovative benefits—even when these come with elevated risk. Use the provided market data and sentiment analysis to strengthen your arguments and challenge the opposing views. Specifically, respond directly to each point made by the conservative and neutral analysts, countering with data-driven rebuttals and persuasive reasoning. Highlight where their caution might miss critical opportunities or where their assumptions may be overly conservative. Here is the trader's decision:
 
 {trader_decision}
 
@@ -79,53 +57,19 @@ Here is the current conversation history: {history} Here are the last arguments 
 
 Engage actively by addressing any specific concerns raised, refuting the weaknesses in their logic, and asserting the benefits of risk-taking to outpace market norms. Maintain a focus on debating and persuading, not just presenting data. Challenge each counterpoint to underscore why a high-risk approach is optimal. Output conversationally as if you are speaking without any special formatting."""
 
-        # 调试信息：打印完整prompt（由debug开关控制）
-        debug_config = config.get("debug", {})
-        if debug_config.get("enabled", False) and debug_config.get("show_prompts", False):
-            logger.debug("=" * 80)
-            logger.debug("DEBUG: Aggressive Risk Debator Prompt Before LLM Call:")
-            logger.debug("=" * 80)
-            logger.debug("Language: %s", language)
-            logger.debug("Prompt: %s", prompt[:800] + "..." if len(prompt) > 800 else prompt)
-            logger.debug("=" * 80)
-        
-        response = llm.invoke(prompt)
-        response_content = response.content
+_CONFIG = RiskDebatorConfig(
+    role_name="Aggressive",
+    state_key_prefix="aggressive",
+    own_history_key="aggressive_history",
+    opponent_response_keys=("current_conservative_response", "current_neutral_response"),
+    default_confidence=0.7,
+    round_label_zh="激进风险观点",
+    debug_label="Aggressive Risk Debator",
+    prompt_zh=_ZH_PROMPT,
+    prompt_en=_EN_PROMPT,
+)
 
-        # 提取预测结果
-        prediction = "HOLD"
-        confidence = 0.7
-        if language == "zh":
-            pred_match = re.search(r'预测[:：]\s*(买入|卖出|持有|BUY|SELL|HOLD).*?置信度[:：]\s*(\d+)%?', response_content, re.IGNORECASE)
-        else:
-            pred_match = re.search(r'PREDICTION:\s*(BUY|SELL|HOLD).*?Confidence:\s*(\d+)%?', response_content, re.IGNORECASE)
-        
-        if pred_match:
-            prediction = pred_match.group(1).upper()
-            pred_map = {"买入": "BUY", "卖出": "SELL", "持有": "HOLD"}
-            prediction = pred_map.get(prediction, prediction)
-            confidence = int(pred_match.group(2)) / 100.0
 
-        # 添加轮次标记
-        current_round = risk_debate_state["count"] + 1
-        argument = f"## 第 {current_round} 轮 - 激进风险观点\nAggressive Analyst: {response_content}"
-
-        new_risk_debate_state = {
-            "history": history + "\n" + argument,
-            "aggressive_history": aggressive_history + "\n" + argument,
-            "conservative_history": risk_debate_state.get("conservative_history", ""),
-            "neutral_history": risk_debate_state.get("neutral_history", ""),
-            "latest_speaker": "Aggressive",
-            "current_aggressive_response": argument,
-            "current_conservative_response": risk_debate_state.get("current_conservative_response", ""),
-            "current_neutral_response": risk_debate_state.get(
-                "current_neutral_response", ""
-            ),
-            "count": current_round,
-            "aggressive_prediction": prediction,
-            "aggressive_confidence": confidence,
-        }
-
-        return {"risk_debate_state": new_risk_debate_state}
-
-    return aggressive_node
+def create_aggressive_debator(llm):
+    """创建激进型风险辩论者节点函数。"""
+    return create_risk_debator(llm, _CONFIG)

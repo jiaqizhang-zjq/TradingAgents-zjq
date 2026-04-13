@@ -95,45 +95,26 @@ class GraphSetup:
         if len(selected_analysts) == 0:
             raise ValueError("Trading Agents Graph Setup Error: no analysts selected!")
 
-        # Create analyst nodes
+        # Create analyst nodes (data-driven)
         analyst_nodes = {}
         delete_nodes = {}
         tool_nodes = {}
 
-        if "market" in selected_analysts:
-            analyst_nodes["market"] = create_market_analyst(
-                self.quick_thinking_llm
-            )
-            delete_nodes["market"] = create_msg_delete()
-            tool_nodes["market"] = self.tool_nodes["market"]
+        analyst_factory_map = {
+            "market": create_market_analyst,
+            "social": create_social_media_analyst,
+            "news": create_news_analyst,
+            "fundamentals": create_fundamentals_analyst,
+            "candlestick": create_candlestick_analyst,
+        }
 
-        if "social" in selected_analysts:
-            analyst_nodes["social"] = create_social_media_analyst(
-                self.quick_thinking_llm
-            )
-            delete_nodes["social"] = create_msg_delete()
-            tool_nodes["social"] = self.tool_nodes["social"]
-
-        if "news" in selected_analysts:
-            analyst_nodes["news"] = create_news_analyst(
-                self.quick_thinking_llm
-            )
-            delete_nodes["news"] = create_msg_delete()
-            tool_nodes["news"] = self.tool_nodes["news"]
-
-        if "fundamentals" in selected_analysts:
-            analyst_nodes["fundamentals"] = create_fundamentals_analyst(
-                self.quick_thinking_llm
-            )
-            delete_nodes["fundamentals"] = create_msg_delete()
-            tool_nodes["fundamentals"] = self.tool_nodes["fundamentals"]
-
-        if "candlestick" in selected_analysts:
-            analyst_nodes["candlestick"] = create_candlestick_analyst(
-                self.quick_thinking_llm
-            )
-            delete_nodes["candlestick"] = create_msg_delete()
-            tool_nodes["candlestick"] = self.tool_nodes["candlestick"]
+        for analyst_type in selected_analysts:
+            factory = analyst_factory_map.get(analyst_type)
+            if factory is None:
+                raise ValueError(f"Unknown analyst type: {analyst_type}")
+            analyst_nodes[analyst_type] = factory(self.quick_thinking_llm)
+            delete_nodes[analyst_type] = create_msg_delete()
+            tool_nodes[analyst_type] = self.tool_nodes[analyst_type]
 
         # ========== 动态创建 researcher 节点 ==========
         researcher_nodes = {}  # display_name -> node_function
