@@ -69,3 +69,43 @@ def get_vendor_info(manager: Any) -> str:
         stats = manager.get_stats()
         return stats.get('last_vendor_used', 'unknown')
     return "unknown"
+
+
+def build_situation_string(state: dict) -> str:
+    """从 state 中构建当前市场情况的汇总字符串。
+    
+    将 5 份报告拼接为单一字符串，供 memory 查询和 prompt 使用。
+    
+    Args:
+        state: 图状态字典，需包含 market_report / sentiment_report /
+               news_report / fundamentals_report 以及可选的 candlestick_report
+    
+    Returns:
+        拼接后的情况字符串
+    """
+    return (
+        f"{state['market_report']}\n\n"
+        f"{state['sentiment_report']}\n\n"
+        f"{state['news_report']}\n\n"
+        f"{state['fundamentals_report']}\n\n"
+        f"{state.get('candlestick_report', '')}"
+    )
+
+
+def format_past_memories(past_memories: list, language: str = "zh") -> str:
+    """将历史记忆列表格式化为字符串。
+    
+    Args:
+        past_memories: memory.get_memories() 返回的记录列表
+        language: 当前语言 ("zh" / "en")
+    
+    Returns:
+        格式化后的历史记忆字符串
+    """
+    if not past_memories:
+        return "没有找到过去的记忆。" if language == "zh" else "No past memories found."
+    
+    past_memory_str = ""
+    for i, rec in enumerate(past_memories, 1):
+        past_memory_str += rec["recommendation"] + "\n\n"
+    return past_memory_str

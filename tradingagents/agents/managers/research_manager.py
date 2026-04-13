@@ -1,6 +1,6 @@
 import re
 
-from tradingagents.agents.utils.logging_utils import log_debug_prompt
+from tradingagents.agents.utils.logging_utils import log_debug_prompt, build_situation_string, format_past_memories
 from tradingagents.dataflows.research_tracker import get_research_tracker
 from tradingagents.dataflows.config import get_config
 from tradingagents.utils.logger import get_logger
@@ -27,12 +27,10 @@ def create_research_manager(llm, memory):
         config = get_config()
         language = config.get("output_language", "zh")
 
-        curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}\n\n{candlestick_report}"
+        curr_situation = build_situation_string(state)
         past_memories = memory.get_memories(curr_situation, n_matches=2)
 
-        past_memory_str = ""
-        for i, rec in enumerate(past_memories, 1):
-            past_memory_str += rec["recommendation"] + "\n\n"
+        past_memory_str = format_past_memories(past_memories, language)
 
         if language == "zh":
             prompt = f"""你是一位拥有20多年经验的资深投资组合经理，曾在顶级对冲基金工作，管理过数十亿美元资产。你的声誉建立在卓越的业绩和严谨的风险管理上。

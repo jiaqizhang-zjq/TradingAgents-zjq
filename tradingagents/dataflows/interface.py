@@ -394,132 +394,77 @@ def _init_data_manager() -> UnifiedDataManager:
         rate_limit_wait=12.0,
     )
     
-    get_stock_data_impls = {}
-    get_stock_data_impls["longbridge"] = get_longbridge_stock
-    get_stock_data_impls["yfinance"] = get_YFin_data_online
-    get_stock_data_impls["alpha_vantage"] = get_alpha_vantage_stock
-    
-    manager.register_method(
-        "get_stock_data",
-        get_stock_data_impls,
-        ["longbridge", "yfinance", "alpha_vantage"]
-    )
-    
-    get_indicators_impls = {}
-    get_indicators_impls["local"] = _local_get_indicators
-    get_indicators_impls["longbridge"] = get_longbridge_indicator
-    get_indicators_impls["yfinance"] = get_stock_stats_indicators_window
-    get_indicators_impls["alpha_vantage"] = get_alpha_vantage_indicator
-    
-    manager.register_method(
-        "get_indicators",
-        get_indicators_impls,
-        ["local", "longbridge", "yfinance", "alpha_vantage"]
-    )
-    
-    get_all_indicators_impls = {}
-    get_all_indicators_impls["local"] = _local_get_all_indicators
-    
-    manager.register_method(
-        "get_all_indicators",
-        get_all_indicators_impls,
-        ["local"]
-    )
-    
-    get_fundamentals_impls = {}
-    get_fundamentals_impls["longbridge"] = get_longbridge_fundamentals
-    get_fundamentals_impls["yfinance"] = get_yfinance_fundamentals
-    get_fundamentals_impls["alpha_vantage"] = get_alpha_vantage_fundamentals
-    
-    manager.register_method(
-        "get_fundamentals",
-        get_fundamentals_impls,
-        ["longbridge", "yfinance", "alpha_vantage"]
-    )
-    
-    get_balance_sheet_impls = {}
-    get_balance_sheet_impls["alpha_vantage"] = get_alpha_vantage_balance_sheet
-    get_balance_sheet_impls["yfinance"] = get_yfinance_balance_sheet
-    get_balance_sheet_impls["longbridge"] = get_longbridge_balance_sheet
-    
-    manager.register_method(
-        "get_balance_sheet",
-        get_balance_sheet_impls,
-        ["alpha_vantage", "yfinance", "longbridge"]
-    )
-    
-    get_cashflow_impls = {}
-    get_cashflow_impls["alpha_vantage"] = get_alpha_vantage_cashflow
-    get_cashflow_impls["yfinance"] = get_yfinance_cashflow
-    get_cashflow_impls["longbridge"] = get_longbridge_cashflow
-    
-    manager.register_method(
-        "get_cashflow",
-        get_cashflow_impls,
-        ["alpha_vantage", "yfinance", "longbridge"]
-    )
-    
-    get_income_statement_impls = {}
-    get_income_statement_impls["alpha_vantage"] = get_alpha_vantage_income_statement
-    get_income_statement_impls["yfinance"] = get_yfinance_income_statement
-    get_income_statement_impls["longbridge"] = get_longbridge_income_statement
-    
-    manager.register_method(
-        "get_income_statement",
-        get_income_statement_impls,
-        ["alpha_vantage", "yfinance", "longbridge"]
-    )
-    
-    get_news_impls = {}
-    get_news_impls["alpha_vantage"] = get_alpha_vantage_news
-    get_news_impls["yfinance"] = get_news_yfinance
-    
-    manager.register_method(
-        "get_news",
-        get_news_impls,
-        ["alpha_vantage", "yfinance"]
-    )
-    
-    get_global_news_impls = {}
-    get_global_news_impls["alpha_vantage"] = get_alpha_vantage_global_news
-    get_global_news_impls["yfinance"] = get_global_news_yfinance
-    
-    manager.register_method(
-        "get_global_news",
-        get_global_news_impls,
-        ["alpha_vantage", "yfinance"]
-    )
-    
-    get_insider_transactions_impls = {}
-    get_insider_transactions_impls["alpha_vantage"] = get_alpha_vantage_insider_transactions
-    get_insider_transactions_impls["yfinance"] = get_yfinance_insider_transactions
-    
-    manager.register_method(
-        "get_insider_transactions",
-        get_insider_transactions_impls,
-        ["alpha_vantage", "yfinance"]
-    )
-    
-    # 蜡烛图形态工具
-    get_candlestick_patterns_impls = {}
-    get_candlestick_patterns_impls["local"] = _local_get_candlestick_patterns
-    get_candlestick_patterns_impls["longbridge"] = get_longbridge_candlestick_patterns
-    
-    manager.register_method(
-        "get_candlestick_patterns",
-        get_candlestick_patterns_impls,
-        ["local", "longbridge"]
-    )
-    
-    # 西方图表形态工具
-    get_chart_patterns_impls = {}
-    get_chart_patterns_impls["local"] = _local_get_chart_patterns
-    
-    manager.register_method(
-        "get_chart_patterns",
-        get_chart_patterns_impls,
-        ["local"]
-    )
+    # ========== 声明式方法注册表 ==========
+    # 每项格式: (method_name, {vendor: impl}, [priority_order])
+    method_registry = [
+        ("get_stock_data", {
+            "longbridge": get_longbridge_stock,
+            "yfinance": get_YFin_data_online,
+            "alpha_vantage": get_alpha_vantage_stock,
+        }, ["longbridge", "yfinance", "alpha_vantage"]),
+
+        ("get_indicators", {
+            "local": _local_get_indicators,
+            "longbridge": get_longbridge_indicator,
+            "yfinance": get_stock_stats_indicators_window,
+            "alpha_vantage": get_alpha_vantage_indicator,
+        }, ["local", "longbridge", "yfinance", "alpha_vantage"]),
+
+        ("get_all_indicators", {
+            "local": _local_get_all_indicators,
+        }, ["local"]),
+
+        ("get_fundamentals", {
+            "longbridge": get_longbridge_fundamentals,
+            "yfinance": get_yfinance_fundamentals,
+            "alpha_vantage": get_alpha_vantage_fundamentals,
+        }, ["longbridge", "yfinance", "alpha_vantage"]),
+
+        ("get_balance_sheet", {
+            "alpha_vantage": get_alpha_vantage_balance_sheet,
+            "yfinance": get_yfinance_balance_sheet,
+            "longbridge": get_longbridge_balance_sheet,
+        }, ["alpha_vantage", "yfinance", "longbridge"]),
+
+        ("get_cashflow", {
+            "alpha_vantage": get_alpha_vantage_cashflow,
+            "yfinance": get_yfinance_cashflow,
+            "longbridge": get_longbridge_cashflow,
+        }, ["alpha_vantage", "yfinance", "longbridge"]),
+
+        ("get_income_statement", {
+            "alpha_vantage": get_alpha_vantage_income_statement,
+            "yfinance": get_yfinance_income_statement,
+            "longbridge": get_longbridge_income_statement,
+        }, ["alpha_vantage", "yfinance", "longbridge"]),
+
+        ("get_news", {
+            "alpha_vantage": get_alpha_vantage_news,
+            "yfinance": get_news_yfinance,
+        }, ["alpha_vantage", "yfinance"]),
+
+        ("get_global_news", {
+            "alpha_vantage": get_alpha_vantage_global_news,
+            "yfinance": get_global_news_yfinance,
+        }, ["alpha_vantage", "yfinance"]),
+
+        ("get_insider_transactions", {
+            "alpha_vantage": get_alpha_vantage_insider_transactions,
+            "yfinance": get_yfinance_insider_transactions,
+        }, ["alpha_vantage", "yfinance"]),
+
+        ("get_candlestick_patterns", {
+            "local": _local_get_candlestick_patterns,
+            "longbridge": get_longbridge_candlestick_patterns,
+        }, ["local", "longbridge"]),
+
+        ("get_chart_patterns", {
+            "local": _local_get_chart_patterns,
+        }, ["local"]),
+    ]
+
+    for method_name, impls, priority_order in method_registry:
+        manager.register_method(method_name, impls, priority_order)
     
     return manager
 

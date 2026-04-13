@@ -231,6 +231,18 @@ DIVERGENCE_WINDOW = 20
 PATTERN_LOOKBACK = 60
 PEAK_TROUGH_WINDOW = 5
 
+# ==================== 图表形态阈值 ====================
+# 头肩顶/底：两肩高度差阈值（5%）
+HEAD_SHOULDERS_TOLERANCE = 0.05
+# 双顶/双底：两峰/谷差阈值（3%）
+DOUBLE_TOP_BOTTOM_TOLERANCE = 0.03
+# 三角形/矩形：水平线容差阈值（2%）
+TRIANGLE_FLAT_TOLERANCE = 0.02
+# 旗形：趋势要求（前半段涨跌幅 > 5%）
+FLAG_TREND_THRESHOLD = 0.05
+# 旗形：整理区间振幅上限（3%）
+FLAG_RANGE_THRESHOLD = 0.03
+
 # ==================== 预测验证阈值 ====================
 # 用于判断预测是否正确的价格变动阈值（2%）
 PREDICTION_THRESHOLD = 0.02

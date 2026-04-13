@@ -408,27 +408,7 @@ class UnifiedDataManager:
                     logger.debug("... (截断，总长度: %d)", len(str(result)))
                 
                 # 记录工具调用信息
-                try:
-                    from tradingagents.dataflows.database import get_db
-                    db = get_db()
-                    # 提取股票代码和日期信息
-                    symbol = args[0] if args else "unknown"
-                    trade_date = args[2] if len(args) >= 3 else datetime.now().strftime("%Y-%m-%d")
-                    input_params = {
-                        "args": args,
-                        "kwargs": kwargs
-                    }
-                    db.save_tool_call(
-                        symbol=symbol,
-                        trade_date=trade_date,
-                        tool_name=method_name,
-                        vendor_used=vendor,
-                        input_params=input_params,
-                        result=str(result)
-                    )
-                    logger.debug("工具调用已记录到数据库")
-                except Exception as e:
-                    logger.warning("记录工具调用失败: %s", e)
+                self._log_tool_call(method_name, vendor, args, kwargs, result)
                 
                 return result
             else:

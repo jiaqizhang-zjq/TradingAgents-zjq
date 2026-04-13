@@ -7,7 +7,14 @@ import numpy as np
 import pandas as pd
 from typing import Dict, Any, List, Tuple
 
-from tradingagents.constants import PEAK_TROUGH_WINDOW
+from tradingagents.constants import (
+    PEAK_TROUGH_WINDOW,
+    HEAD_SHOULDERS_TOLERANCE,
+    DOUBLE_TOP_BOTTOM_TOLERANCE,
+    TRIANGLE_FLAT_TOLERANCE,
+    FLAG_TREND_THRESHOLD,
+    FLAG_RANGE_THRESHOLD,
+)
 
 
 def _find_peaks_and_troughs(df: pd.DataFrame, window: int = PEAK_TROUGH_WINDOW) -> Tuple[List[int], List[int]]:
@@ -89,7 +96,7 @@ class ChartPatterns:
                 left, head, right = peaks[i], peaks[i + 1], peaks[i + 2]
                 if highs[head] > highs[left] and highs[head] > highs[right]:
                     shoulder_diff = abs(highs[left] - highs[right]) / highs[head]
-                    if shoulder_diff < 0.05:  # 两肩高度差 < 5%
+                    if shoulder_diff < HEAD_SHOULDERS_TOLERANCE:  # 两肩高度差 < 5%
                         result = {
                             "detected": True,
                             "type": "head_and_shoulders_top",
@@ -105,7 +112,7 @@ class ChartPatterns:
                 left, head, right = troughs[i], troughs[i + 1], troughs[i + 2]
                 if lows[head] < lows[left] and lows[head] < lows[right]:
                     shoulder_diff = abs(lows[left] - lows[right]) / abs(lows[head]) if lows[head] != 0 else 1
-                    if shoulder_diff < 0.05:
+                    if shoulder_diff < HEAD_SHOULDERS_TOLERANCE:
                         result = {
                             "detected": True,
                             "type": "head_and_shoulders_bottom",
@@ -116,38 +123,45 @@ class ChartPatterns:
         return result
 
     @staticmethod
-    def _identify_double_top(df: pd.DataFrame) -> Dict[str, Any]:
-        """检测双顶"""
-        peaks, _ = _find_peaks_and_troughs(df)
-        highs = df["high"].values
-        if len(peaks) >= 2:
-            p1, p2 = peaks[-2], peaks[-1]
-            diff = abs(highs[p1] - highs[p2]) / max(highs[p1], highs[p2])
-            if diff < 0.03:  # 两峰差 < 3%
+    def _identify_double_extreme(
+        df: pd.DataFrame, use_peaks: bool = True
+    ) -> Dict[str, Any]:
+        """检测双顶或双底（参数化方法）
+        
+        Args:
+            df: 价格数据
+            use_peaks: True=检测双顶(peaks/highs/bearish), False=检测双底(troughs/lows/bullish)
+        """
+        peaks, troughs = _find_peaks_and_troughs(df)
+        points = peaks if use_peaks else troughs
+        values = df["high"].values if use_peaks else df["low"].values
+        pattern_type = "double_top" if use_peaks else "double_bottom"
+        signal = "bearish" if use_peaks else "bullish"
+
+        if len(points) >= 2:
+            p1, p2 = points[-2], points[-1]
+            divisor = max(abs(values[p1]), abs(values[p2])) if not use_peaks else max(values[p1], values[p2])
+            if divisor == 0:
+                divisor = 1
+            diff = abs(values[p1] - values[p2]) / divisor
+            if diff < DOUBLE_TOP_BOTTOM_TOLERANCE:
                 return {
                     "detected": True,
-                    "type": "double_top",
-                    "signal": "bearish",
+                    "type": pattern_type,
+                    "signal": signal,
                     "confidence": round(min(0.85, 0.5 + (1 - diff) * 0.35), 2),
                 }
         return {"detected": False}
 
     @staticmethod
+    def _identify_double_top(df: pd.DataFrame) -> Dict[str, Any]:
+        """检测双顶"""
+        return ChartPatterns._identify_double_extreme(df, use_peaks=True)
+
+    @staticmethod
     def _identify_double_bottom(df: pd.DataFrame) -> Dict[str, Any]:
         """检测双底"""
-        _, troughs = _find_peaks_and_troughs(df)
-        lows = df["low"].values
-        if len(troughs) >= 2:
-            t1, t2 = troughs[-2], troughs[-1]
-            diff = abs(lows[t1] - lows[t2]) / max(abs(lows[t1]), abs(lows[t2])) if lows[t1] != 0 else 1
-            if diff < 0.03:
-                return {
-                    "detected": True,
-                    "type": "double_bottom",
-                    "signal": "bullish",
-                    "confidence": round(min(0.85, 0.5 + (1 - diff) * 0.35), 2),
-                }
-        return {"detected": False}
+        return ChartPatterns._identify_double_extreme(df, use_peaks=False)
 
     @staticmethod
     def _identify_ascending_triangle(df: pd.DataFrame) -> Dict[str, Any]:
@@ -156,7 +170,7 @@ class ChartPatterns:
         if len(peaks) >= 2 and len(troughs) >= 2:
             highs = df["high"].values
             lows = df["low"].values
-            resistance_flat = abs(highs[peaks[-1]] - highs[peaks[-2]]) / highs[peaks[-1]] < 0.02
+            resistance_flat = abs(highs[peaks[-1]] - highs[peaks[-2]]) / highs[peaks[-1]] < TRIANGLE_FLAT_TOLERANCE
             support_rising = lows[troughs[-1]] > lows[troughs[-2]]
             if resistance_flat and support_rising:
                 return {"detected": True, "type": "ascending_triangle", "signal": "bullish", "confidence": 0.65}
@@ -169,7 +183,7 @@ class ChartPatterns:
         if len(peaks) >= 2 and len(troughs) >= 2:
             highs = df["high"].values
             lows = df["low"].values
-            support_flat = abs(lows[troughs[-1]] - lows[troughs[-2]]) / max(abs(lows[troughs[-1]]), 1e-9) < 0.02
+            support_flat = abs(lows[troughs[-1]] - lows[troughs[-2]]) / max(abs(lows[troughs[-1]]), 1e-9) < TRIANGLE_FLAT_TOLERANCE
             resistance_falling = highs[peaks[-1]] < highs[peaks[-2]]
             if support_flat and resistance_falling:
                 return {"detected": True, "type": "descending_triangle", "signal": "bearish", "confidence": 0.65}
@@ -202,7 +216,7 @@ class ChartPatterns:
         # 后半段振幅
         flag_range = (max(closes[half:]) - min(closes[half:])) / closes[half] if closes[half] != 0 else 1
 
-        if abs(trend_pct) > 0.05 and flag_range < 0.03:
+        if abs(trend_pct) > FLAG_TREND_THRESHOLD and flag_range < FLAG_RANGE_THRESHOLD:
             signal = "bullish" if trend_pct > 0 else "bearish"
             return {"detected": True, "type": "flag", "signal": signal, "confidence": 0.60}
         return {"detected": False}
@@ -226,8 +240,13 @@ class ChartPatterns:
         return {"detected": False}
 
     @staticmethod
-    def _identify_rounding_top(df: pd.DataFrame) -> Dict[str, Any]:
-        """检测圆弧顶"""
+    def _identify_rounding(df: pd.DataFrame, is_top: bool = True) -> Dict[str, Any]:
+        """检测圆弧顶或圆弧底（参数化方法）
+        
+        Args:
+            df: 价格数据
+            is_top: True=圆弧顶(先升后降/bearish), False=圆弧底(先降后升/bullish)
+        """
         closes = df["close"].values
         if len(closes) < 20:
             return {"detected": False}
@@ -236,24 +255,21 @@ class ChartPatterns:
         first_half_slope = (closes[mid] - closes[0]) / max(mid, 1)
         second_half_slope = (closes[-1] - closes[mid]) / max(len(closes) - mid, 1)
 
-        if first_half_slope > 0 and second_half_slope < 0:
+        if is_top and first_half_slope > 0 and second_half_slope < 0:
             return {"detected": True, "type": "rounding_top", "signal": "bearish", "confidence": 0.55}
+        if not is_top and first_half_slope < 0 and second_half_slope > 0:
+            return {"detected": True, "type": "rounding_bottom", "signal": "bullish", "confidence": 0.55}
         return {"detected": False}
+
+    @staticmethod
+    def _identify_rounding_top(df: pd.DataFrame) -> Dict[str, Any]:
+        """检测圆弧顶"""
+        return ChartPatterns._identify_rounding(df, is_top=True)
 
     @staticmethod
     def _identify_rounding_bottom(df: pd.DataFrame) -> Dict[str, Any]:
         """检测圆弧底"""
-        closes = df["close"].values
-        if len(closes) < 20:
-            return {"detected": False}
-
-        mid = len(closes) // 2
-        first_half_slope = (closes[mid] - closes[0]) / max(mid, 1)
-        second_half_slope = (closes[-1] - closes[mid]) / max(len(closes) - mid, 1)
-
-        if first_half_slope < 0 and second_half_slope > 0:
-            return {"detected": True, "type": "rounding_bottom", "signal": "bullish", "confidence": 0.55}
-        return {"detected": False}
+        return ChartPatterns._identify_rounding(df, is_top=False)
 
     @staticmethod
     def _identify_rectangle(df: pd.DataFrame) -> Dict[str, Any]:

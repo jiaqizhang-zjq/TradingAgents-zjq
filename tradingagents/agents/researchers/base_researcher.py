@@ -8,6 +8,7 @@ from typing import Callable, Dict, Any
 
 from tradingagents.dataflows.research_tracker import get_research_tracker
 from tradingagents.dataflows.config import get_config
+from tradingagents.agents.utils.logging_utils import build_situation_string, format_past_memories
 from tradingagents.constants import RESEARCHER_DEBATE_SLEEP_SECONDS
 
 
@@ -320,12 +321,10 @@ Use this information to make a compelling {stance_label} case from your perspect
             config = get_config()
             language = config.get("output_language", "zh")
 
-            curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}\n\n{candlestick_report}"
+            curr_situation = build_situation_string(state)
             past_memories = self.memory.get_memories(curr_situation, n_matches=2)
 
-            past_memory_str = ""
-            for i, rec in enumerate(past_memories, 1):
-                past_memory_str += rec["recommendation"] + "\n\n"
+            past_memory_str = format_past_memories(past_memories, language)
 
             # 获取历史胜率
             tracker = get_research_tracker()

@@ -10,10 +10,11 @@
   6. 轮次标记文本
 """
 
-import re
 from dataclasses import dataclass
 from typing import Callable, Dict
 
+from tradingagents.agents.utils.logging_utils import log_debug_prompt
+from tradingagents.agents.utils.prediction_utils import extract_prediction
 from tradingagents.dataflows.config import get_config
 from tradingagents.utils.logger import get_logger
 
@@ -85,39 +86,18 @@ def create_risk_debator(llm, config: RiskDebatorConfig) -> Callable:
         prompt = (config.prompt_zh if language == "zh" else config.prompt_en).format(**fmt_vars)
 
         # Debug 日志
-        debug_cfg = app_config.get("debug", {})
-        if debug_cfg.get("enabled", False) and debug_cfg.get("show_prompts", False):
-            logger.debug("=" * 80)
-            logger.debug("DEBUG: %s Prompt Before LLM Call:", config.debug_label)
-            logger.debug("=" * 80)
-            logger.debug("Language: %s", language)
-            logger.debug("Prompt: %s", prompt[:800] + "..." if len(prompt) > 800 else prompt)
-            logger.debug("=" * 80)
+        log_debug_prompt(app_config, config.debug_label, language, logger, Prompt=prompt)
 
         response = llm.invoke(prompt)
         response_content = response.content
 
         # 提取预测
-        prediction = "HOLD"
-        confidence = config.default_confidence
-        if language == "zh":
-            pred_match = re.search(
-                r'预测[:：]\s*(买入|卖出|持有|BUY|SELL|HOLD).*?置信度[:：]\s*(\d+)%?',
-                response_content,
-                re.IGNORECASE,
-            )
-        else:
-            pred_match = re.search(
-                r'PREDICTION:\s*(BUY|SELL|HOLD).*?Confidence:\s*(\d+)%?',
-                response_content,
-                re.IGNORECASE,
-            )
-
-        if pred_match:
-            prediction = pred_match.group(1).upper()
-            pred_map = {"买入": "BUY", "卖出": "SELL", "持有": "HOLD"}
-            prediction = pred_map.get(prediction, prediction)
-            confidence = int(pred_match.group(2)) / 100.0
+        prediction, confidence = extract_prediction(
+            response_content, language,
+            zh_pattern=r'预测[:：]\s*(买入|卖出|持有|BUY|SELL|HOLD).*?置信度[:：]\s*(\d+)%?',
+            en_pattern=r'PREDICTION:\s*(BUY|SELL|HOLD).*?Confidence:\s*(\d+)%?',
+            default_confidence=config.default_confidence,
+        )
 
         # 轮次标记
         current_round = risk_debate_state["count"] + 1

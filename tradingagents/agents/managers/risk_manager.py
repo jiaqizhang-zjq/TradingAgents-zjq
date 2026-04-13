@@ -1,4 +1,4 @@
-from tradingagents.agents.utils.logging_utils import log_debug_prompt
+from tradingagents.agents.utils.logging_utils import log_debug_prompt, build_situation_string, format_past_memories
 from tradingagents.agents.utils.prediction_utils import extract_prediction
 from tradingagents.dataflows.config import get_config
 from tradingagents.utils.logger import get_logger
@@ -20,12 +20,10 @@ def create_risk_manager(llm, memory):
         candlestick_report = state.get("candlestick_report", "")
         trader_plan = state["investment_plan"]
 
-        curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}\n\n{candlestick_report}"
+        curr_situation = build_situation_string(state)
         past_memories = memory.get_memories(curr_situation, n_matches=2)
 
-        past_memory_str = ""
-        for i, rec in enumerate(past_memories, 1):
-            past_memory_str += rec["recommendation"] + "\n\n"
+        past_memory_str = format_past_memories(past_memories, language)
 
         config = get_config()
         language = config.get("output_language", "zh")
